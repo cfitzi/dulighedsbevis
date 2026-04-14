@@ -268,13 +268,14 @@ function InteractiveCurrentTriangle() {
     (bSpd * Math.cos(ctwR) + driftSpd * Math.cos(sRad)) ** 2
   );
 
-  // CTS direction indicator from A
+  // CTS direction indicator from A (proportional to triangle size)
   const ctsR = cts * Math.PI / 180;
-  const ctsLen = 60;
+  const distABc = Math.sqrt((ptBc.x - ptA.x) ** 2 + (ptBc.y - ptA.y) ** 2);
+  const ctsLen = Math.max(120, distABc * 0.55);
   const ptCtsEnd = { x: ptA.x + ctsLen * Math.sin(ctsR), y: ptA.y - ctsLen * Math.cos(ctsR) };
 
-  // Leeway arc: small arc from CTW to CTS direction at A
-  const arcR = 45;
+  // Leeway arc (bigger for visibility)
+  const arcR = 70;
   const ctwEnd = { x: ptA.x + arcR * Math.sin(ctwR), y: ptA.y - arcR * Math.cos(ctwR) };
   const ctsArc = { x: ptA.x + arcR * Math.sin(ctsR), y: ptA.y - arcR * Math.cos(ctsR) };
 
@@ -319,22 +320,38 @@ function InteractiveCurrentTriangle() {
   );
 
   const fmt = (v) => Math.round(v) + "°";
+  const fmt3 = (v) => String(Math.round(v)).padStart(3, "0") + "°";
+
+  // Current angle difference (handles 360° wrap)
+  const curDiff = Math.round(Math.min(Math.abs(cog - ctw), 360 - Math.abs(cog - ctw)));
 
   // Correction chain data
   const chain = [
-    { label: "COG", value: fmt(cog), sub: "Ground track", color: blue },
-    { op: driftSpd > 0 ? `−${Math.round(Math.abs(cog - ctw))}° current` : "no current", color: red },
-    { label: "CTW", value: fmt(ctw), sub: "Through water", color: grn },
-    { op: lwAngle > 0 ? `${lwS < 0 ? "−" : "+"}${lwAngle}° leeway` : "no leeway", color: gold },
-    { label: "CTS", value: fmt(cts), sub: "Course to steer", color: grn },
-    { op: `${mvSigned <= 0 ? "+" : "−"}${mvVal}°${mvD} var`, color: purp },
-    { label: "CM", value: fmt(cmVal), sub: "Magnetic", color: gold },
-    { op: `${dvSigned <= 0 ? "+" : "−"}${dvVal}°${dvD} dev`, color: purp },
-    { label: "CC", value: fmt(ccVal), sub: "Compass course", color: red },
+    { label: "COG", value: fmt3(cog), sub: "Ground track", color: blue },
+    { op: driftSpd > 0 ? `${curDiff}° current` : "no current", color: red },
+    { label: "CTW", value: fmt3(ctw), sub: "Through water", color: grn },
+    { op: lwAngle > 0 ? `${lwAngle}° leeway` : "no leeway", color: gold },
+    { label: "CTS", value: fmt3(cts), sub: "Course to steer", color: grn },
+    { op: `${mvVal}°${mvD} var`, color: purp },
+    { label: "CM", value: fmt3(cmVal), sub: "Magnetic", color: gold },
+    { op: `${dvVal}°${dvD} dev`, color: purp },
+    { label: "CC", value: fmt3(ccVal), sub: "Compass course", color: red },
   ];
 
+  // Slider row helper
+  const sliderRow = (label, value, min, max, step, onChange, color, suffix = "") => (
+    <div style={{ marginBottom: 6 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 2 }}>
+        <span style={{ color: muted, fontSize: 10 }}>{label}</span>
+        <span style={{ color, fontSize: 11, fontWeight: 700 }}>{typeof value === "number" ? (Number.isInteger(step) ? value : value.toFixed(1)) : value}{suffix}</span>
+      </div>
+      <input type="range" min={min} max={max} step={step} value={value}
+        onChange={onChange} style={{ width: "100%", accentColor: color, cursor: "pointer", height: 4 }} />
+    </div>
+  );
+
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
       {/* --- SVG Diagram --- */}
       <svg ref={svgRef} viewBox={`0 0 ${W} ${H}`}
         style={{ width: "100%", maxWidth: W, aspectRatio: `${W}/${H}`, background: "#e8f0fe",
@@ -353,166 +370,156 @@ function InteractiveCurrentTriangle() {
         <text x={30} y={48} textAnchor="middle" fill={txt} fontSize={10} fontWeight="700" fontFamily="system-ui">N</text>
 
         {/* Legend */}
-        <rect x={W - 230} y={6} width={222} height={72} rx={6} fill="white" fillOpacity={0.88} stroke={bdr} strokeWidth={0.5} />
-        <line x1={W - 220} y1={20} x2={W - 200} y2={20} stroke={blue} strokeWidth={2.5} />
-        <text x={W - 195} y={24} fill={muted} fontSize={9.5} fontFamily="system-ui">Desired ground track (COG)</text>
-        <line x1={W - 220} y1={36} x2={W - 200} y2={36} stroke={red} strokeWidth={2.5} strokeDasharray="5,3" />
-        <text x={W - 195} y={40} fill={muted} fontSize={9.5} fontFamily="system-ui">Current drift (set & drift)</text>
-        <line x1={W - 220} y1={52} x2={W - 200} y2={52} stroke={grn} strokeWidth={2.5} />
-        <text x={W - 195} y={56} fill={muted} fontSize={9.5} fontFamily="system-ui">Course through water (CTW)</text>
-        <line x1={W - 220} y1={68} x2={W - 200} y2={68} stroke={gold} strokeWidth={2.5} strokeDasharray="3,3" />
-        <text x={W - 195} y={72} fill={muted} fontSize={9.5} fontFamily="system-ui">Course to steer (CTS) — leeway adjusted</text>
+        <rect x={W - 235} y={6} width={227} height={72} rx={6} fill="white" fillOpacity={0.9} stroke={bdr} strokeWidth={0.5} />
+        <line x1={W - 225} y1={20} x2={W - 205} y2={20} stroke={blue} strokeWidth={2} />
+        <text x={W - 200} y={24} fill={muted} fontSize={10} fontFamily="system-ui">Desired ground track (COG)</text>
+        <line x1={W - 225} y1={36} x2={W - 205} y2={36} stroke={red} strokeWidth={2.5} strokeDasharray="5,3" />
+        <text x={W - 200} y={40} fill={muted} fontSize={10} fontFamily="system-ui">Current (set & drift)</text>
+        <line x1={W - 225} y1={52} x2={W - 205} y2={52} stroke={grn} strokeWidth={3} />
+        <text x={W - 200} y={56} fill={muted} fontSize={10} fontFamily="system-ui">Course through water (CTW)</text>
+        <line x1={W - 225} y1={68} x2={W - 205} y2={68} stroke={gold} strokeWidth={2.5} strokeDasharray="4,3" />
+        <text x={W - 200} y={72} fill={muted} fontSize={10} fontFamily="system-ui">Course to steer (CTS)</text>
 
-        {/* 1. Desired ground track A→B (blue) */}
-        <line x1={ptA.x} y1={ptA.y} x2={ptB.x} y2={ptB.y} stroke={blue} strokeWidth={2.5} opacity={0.65} />
-        <polygon points={arrowH(ptA.x, ptA.y, ptB.x, ptB.y)} fill={blue} opacity={0.65} />
+        {/* 1. Desired ground track A→B (blue, thinner to distinguish from CTW) */}
+        <line x1={ptA.x} y1={ptA.y} x2={ptB.x} y2={ptB.y} stroke={blue} strokeWidth={2} opacity={0.55} />
+        <polygon points={arrowH(ptA.x, ptA.y, ptB.x, ptB.y)} fill={blue} opacity={0.55} />
 
-        {/* 2. Uncorrected drift: B→Bdrift (faded red dashed, "where you'd end up") */}
-        <line x1={ptB.x} y1={ptB.y} x2={ptBd.x} y2={ptBd.y} stroke={red} strokeWidth={2} strokeDasharray="5,4" opacity={0.35} />
-        <polygon points={arrowH(ptB.x, ptB.y, ptBd.x, ptBd.y, 8)} fill={red} opacity={0.35} />
-        <text x={ptBd.x + 8} y={ptBd.y + 4} fill={red} fontSize={9} fontFamily="system-ui" opacity={0.55}>
-          drift (uncorrected)
-        </text>
+        {/* 2. Uncorrected drift: B→Bdrift (faded, "where you'd end up") */}
+        {driftSpd > 0 && <>
+          <line x1={ptB.x} y1={ptB.y} x2={ptBd.x} y2={ptBd.y} stroke={red} strokeWidth={1.5} strokeDasharray="4,4" opacity={0.3} />
+          <polygon points={arrowH(ptB.x, ptB.y, ptBd.x, ptBd.y, 7)} fill={red} opacity={0.3} />
+          <text x={ptBd.x + 6} y={ptBd.y + 4} fill={red} fontSize={9} fontFamily="system-ui" opacity={0.45}>
+            uncorrected
+          </text>
+        </>}
 
-        {/* 3. Current correction vector in triangle: Bcomp→B (red dashed) */}
-        <line x1={ptBc.x} y1={ptBc.y} x2={ptB.x} y2={ptB.y} stroke={red} strokeWidth={2.5} strokeDasharray="6,4" />
-        <polygon points={arrowH(ptBc.x, ptBc.y, ptB.x, ptB.y)} fill={red} />
+        {/* 3. Current correction vector: Bcomp→B (red dashed) */}
+        {driftSpd > 0 && <>
+          <line x1={ptBc.x} y1={ptBc.y} x2={ptB.x} y2={ptB.y} stroke={red} strokeWidth={2.5} strokeDasharray="6,4" />
+          <polygon points={arrowH(ptBc.x, ptBc.y, ptB.x, ptB.y)} fill={red} />
+        </>}
 
-        {/* 4. Water track A→Bcomp (green, CTW) */}
+        {/* 4. Water track A→Bcomp (green, CTW) — thicker, main line */}
         <line x1={ptA.x} y1={ptA.y} x2={ptBc.x} y2={ptBc.y} stroke={grn} strokeWidth={3} />
-        <polygon points={arrowH(ptA.x, ptA.y, ptBc.x, ptBc.y)} fill={grn} />
+        <polygon points={arrowH(ptA.x, ptA.y, ptBc.x, ptBc.y, 11)} fill={grn} />
 
-        {/* 5. CTS direction indicator from A (gold dashed, shorter) */}
+        {/* 5. CTS direction from A (gold dashed, longer and more visible) */}
         {lwAngle > 0 && (
           <>
-            <line x1={ptA.x} y1={ptA.y} x2={ptCtsEnd.x} y2={ptCtsEnd.y} stroke={gold} strokeWidth={2.5} strokeDasharray="4,3" />
-            <polygon points={arrowH(ptA.x, ptA.y, ptCtsEnd.x, ptCtsEnd.y, 7)} fill={gold} />
-            {/* Leeway angle arc */}
+            <line x1={ptA.x} y1={ptA.y} x2={ptCtsEnd.x} y2={ptCtsEnd.y} stroke={gold} strokeWidth={2.5} strokeDasharray="6,4" />
+            <polygon points={arrowH(ptA.x, ptA.y, ptCtsEnd.x, ptCtsEnd.y, 9)} fill={gold} />
+            {/* Leeway arc + label */}
             <path d={`M ${ctwEnd.x} ${ctwEnd.y} A ${arcR} ${arcR} 0 0 ${lwS < 0 ? 0 : 1} ${ctsArc.x} ${ctsArc.y}`}
-              fill="none" stroke={gold} strokeWidth={1.5} opacity={0.7} />
-            <text x={(ctwEnd.x + ctsArc.x) / 2 + (lwS < 0 ? -18 : 10)}
-              y={(ctwEnd.y + ctsArc.y) / 2}
-              fill={gold} fontSize={9} fontWeight="600" fontFamily="system-ui">{lwAngle}°</text>
+              fill={gold + "15"} stroke={gold} strokeWidth={2} opacity={0.8} />
+            <text x={(ctwEnd.x + ctsArc.x) / 2 + (lwS < 0 ? -22 : 12)}
+              y={(ctwEnd.y + ctsArc.y) / 2 + 2}
+              fill={gold} fontSize={11} fontWeight="700" fontFamily="system-ui">{lwAngle}° leeway</text>
           </>
         )}
 
+        {/* Bearing readout panel (bottom-right of SVG) */}
+        <rect x={W - 140} y={H - 86} width={130} height={74} rx={6} fill="white" fillOpacity={0.92} stroke={bdr} strokeWidth={0.5} />
+        <text x={W - 130} y={H - 68} fill={blue} fontSize={12} fontWeight="700" fontFamily="system-ui">COG {fmt3(cog)}</text>
+        <text x={W - 130} y={H - 52} fill={grn} fontSize={12} fontWeight="700" fontFamily="system-ui">CTW {fmt3(ctw)}</text>
+        <text x={W - 130} y={H - 36} fill={gold} fontSize={12} fontWeight="700" fontFamily="system-ui">CTS  {fmt3(cts)}</text>
+        <text x={W - 130} y={H - 20} fill={muted} fontSize={11} fontWeight="600" fontFamily="system-ui">SOG  {sogVal.toFixed(1)} kn</text>
+
         {/* Draggable A */}
-        <circle cx={ptA.x} cy={ptA.y} r={9} fill={txt} stroke="white" strokeWidth={2}
+        <circle cx={ptA.x} cy={ptA.y} r={10} fill={txt} stroke="white" strokeWidth={2}
           style={{ cursor: "grab" }}
           onMouseDown={() => setDragging("A")}
           onTouchStart={(e) => { e.preventDefault(); setDragging("A"); }} />
         <text x={ptA.x - 18} y={ptA.y + 24} fill={txt} fontSize={14} fontWeight="700" fontFamily="system-ui">A</text>
-        <text x={ptA.x - 18} y={ptA.y + 36} fill={muted} fontSize={9} fontFamily="system-ui">departure</text>
 
         {/* Draggable B */}
-        <circle cx={ptB.x} cy={ptB.y} r={9} fill={blue} stroke="white" strokeWidth={2}
+        <circle cx={ptB.x} cy={ptB.y} r={10} fill={blue} stroke="white" strokeWidth={2}
           style={{ cursor: "grab" }}
           onMouseDown={() => setDragging("B")}
           onTouchStart={(e) => { e.preventDefault(); setDragging("B"); }} />
         <text x={ptB.x + 14} y={ptB.y - 4} fill={blue} fontSize={14} fontWeight="700" fontFamily="system-ui">B</text>
-        <text x={ptB.x + 14} y={ptB.y + 8} fill={muted} fontSize={9} fontFamily="system-ui">destination</text>
 
         {/* Bcomp point */}
-        <circle cx={ptBc.x} cy={ptBc.y} r={5} fill={grn} stroke="white" strokeWidth={1.5} />
+        {driftSpd > 0 && <circle cx={ptBc.x} cy={ptBc.y} r={5} fill={grn} stroke="white" strokeWidth={1.5} />}
 
         {/* Instruction */}
-        <text x={W / 2} y={H - 8} textAnchor="middle" fill={muted} fontSize={10} fontFamily="system-ui" opacity={0.6}>
-          Drag A and B to set your desired ground track (COG). Adjust current, leeway and compass corrections below.
+        <text x={W / 2} y={H - 8} textAnchor="middle" fill={muted} fontSize={10} fontFamily="system-ui" opacity={0.55}>
+          Drag A and B to set your desired ground track
         </text>
       </svg>
 
-      {/* --- Controls --- */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 10, background: "#fff",
-        padding: "14px 16px", borderRadius: 10, border: `1px solid ${bdr}`, fontSize: 11 }}>
+      {/* --- Controls (3 columns, more spacious) --- */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 16, background: "#fff",
+        padding: "16px 20px", borderRadius: 10, border: `1px solid ${bdr}` }}>
 
         {/* Current */}
         <div>
-          <div style={{ fontWeight: 700, color: red, marginBottom: 6 }}>Current (set & drift)</div>
-          <div style={{ color: muted, fontSize: 10, marginBottom: 2 }}>Drift: {driftSpd.toFixed(1)} kn</div>
-          <input type="range" min="0" max="3" step="0.1" value={driftSpd}
-            onChange={(e) => setDriftSpd(parseFloat(e.target.value))}
-            style={{ width: "100%", accentColor: red, cursor: "pointer" }} />
-          <div style={{ color: muted, fontSize: 10, marginBottom: 2, marginTop: 4 }}>Set: {setDir}°</div>
-          <input type="range" min="0" max="359" step="1" value={setDir}
-            onChange={(e) => setSetDir(parseInt(e.target.value))}
-            style={{ width: "100%", accentColor: red, cursor: "pointer" }} />
+          <div style={{ fontSize: 12, fontWeight: 700, color: red, marginBottom: 8, display: "flex", alignItems: "center", gap: 6 }}>
+            <span style={{ display: "inline-block", width: 12, height: 3, background: red, borderRadius: 2 }} />
+            Current (set & drift)
+          </div>
+          {sliderRow("Drift speed", driftSpd, 0, 3, 0.1, (e) => setDriftSpd(parseFloat(e.target.value)), red, " kn")}
+          {sliderRow("Set direction", setDir, 0, 359, 1, (e) => setSetDir(parseInt(e.target.value)), red, "°")}
         </div>
 
         {/* Leeway & boat speed */}
         <div>
-          <div style={{ fontWeight: 700, color: gold, marginBottom: 6 }}>Leeway & speed</div>
-          <div style={{ color: muted, fontSize: 10, marginBottom: 2 }}>Leeway: {lwAngle}°</div>
-          <input type="range" min="0" max="15" step="1" value={lwAngle}
-            onChange={(e) => setLwAngle(parseInt(e.target.value))}
-            style={{ width: "100%", accentColor: gold, cursor: "pointer" }} />
-          <div style={{ display: "flex", gap: 4, marginTop: 4, marginBottom: 6 }}>
-            <span style={{ fontSize: 10, color: muted, lineHeight: "22px" }}>Wind from:</span>
-            {pill("Port", windFrom === "port", () => setWindFrom("port"), gold)}
-            {pill("Stbd", windFrom === "starboard", () => setWindFrom("starboard"), gold)}
+          <div style={{ fontSize: 12, fontWeight: 700, color: gold, marginBottom: 8, display: "flex", alignItems: "center", gap: 6 }}>
+            <span style={{ display: "inline-block", width: 12, height: 3, background: gold, borderRadius: 2 }} />
+            Leeway & boat speed
           </div>
-          <div style={{ color: muted, fontSize: 10, marginBottom: 2 }}>Boat speed: {bSpd.toFixed(1)} kn</div>
-          <input type="range" min="1" max="10" step="0.1" value={bSpd}
-            onChange={(e) => setBSpd(parseFloat(e.target.value))}
-            style={{ width: "100%", accentColor: grn, cursor: "pointer" }} />
+          {sliderRow("Leeway angle", lwAngle, 0, 15, 1, (e) => setLwAngle(parseInt(e.target.value)), gold, "°")}
+          <div style={{ display: "flex", gap: 6, alignItems: "center", marginBottom: 8 }}>
+            <span style={{ fontSize: 10, color: muted }}>Wind from:</span>
+            {pill("Port", windFrom === "port", () => setWindFrom("port"), gold)}
+            {pill("Starboard", windFrom === "starboard", () => setWindFrom("starboard"), gold)}
+          </div>
+          {sliderRow("Boat speed (STW)", bSpd, 1, 10, 0.1, (e) => setBSpd(parseFloat(e.target.value)), grn, " kn")}
         </div>
 
         {/* Compass corrections */}
         <div>
-          <div style={{ fontWeight: 700, color: purp, marginBottom: 6 }}>Compass corrections</div>
-          <div style={{ display: "flex", alignItems: "center", gap: 4, marginBottom: 4 }}>
-            <span style={{ fontSize: 10, color: muted, minWidth: 24 }}>MV:</span>
-            <input type="range" min="0" max="10" step="0.5" value={mvVal}
-              onChange={(e) => setMvVal(parseFloat(e.target.value))}
-              style={{ flex: 1, accentColor: purp, cursor: "pointer" }} />
-            <span style={{ fontSize: 10, fontWeight: 700, width: 28, color: purp }}>{mvVal}°</span>
-            {pill("E", mvD === "E", () => setMvD("E"), purp)}
-            {pill("W", mvD === "W", () => setMvD("W"), purp)}
+          <div style={{ fontSize: 12, fontWeight: 700, color: purp, marginBottom: 8, display: "flex", alignItems: "center", gap: 6 }}>
+            <span style={{ display: "inline-block", width: 12, height: 3, background: purp, borderRadius: 2 }} />
+            Compass corrections (TVMDC)
           </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-            <span style={{ fontSize: 10, color: muted, minWidth: 24 }}>DV:</span>
-            <input type="range" min="0" max="10" step="0.5" value={dvVal}
-              onChange={(e) => setDvVal(parseFloat(e.target.value))}
-              style={{ flex: 1, accentColor: purp, cursor: "pointer" }} />
-            <span style={{ fontSize: 10, fontWeight: 700, width: 28, color: purp }}>{dvVal}°</span>
-            {pill("E", dvD === "E", () => setDvD("E"), purp)}
-            {pill("W", dvD === "W", () => setDvD("W"), purp)}
-          </div>
-        </div>
-
-        {/* Results */}
-        <div style={{ display: "flex", flexDirection: "column", justifyContent: "center", gap: 3 }}>
-          <div style={{ fontWeight: 700, color: txt, marginBottom: 4 }}>Results</div>
-          {[
-            ["COG", fmt(cog), blue],
-            ["CTW", fmt(ctw), grn],
-            ["CTS", fmt(cts), grn],
-            ["CM", fmt(cmVal), gold],
-            ["CC", fmt(ccVal), red],
-            ["SOG", sogVal.toFixed(1) + " kn", txt],
-          ].map(([k, v, c]) => (
-            <div key={k} style={{ display: "flex", justifyContent: "space-between" }}>
-              <span style={{ color: muted }}>{k}</span>
-              <span style={{ fontWeight: 700, color: c }}>{v}</span>
+          <div style={{ marginBottom: 8 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
+              <span style={{ fontSize: 11, color: muted, minWidth: 60 }}>Variation</span>
+              <input type="range" min="0" max="10" step="0.5" value={mvVal}
+                onChange={(e) => setMvVal(parseFloat(e.target.value))}
+                style={{ flex: 1, accentColor: purp, cursor: "pointer" }} />
+              <span style={{ fontSize: 11, fontWeight: 700, width: 32, color: purp, textAlign: "right" }}>{mvVal}°</span>
+              {pill("E", mvD === "E", () => setMvD("E"), purp)}
+              {pill("W", mvD === "W", () => setMvD("W"), purp)}
             </div>
-          ))}
+            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <span style={{ fontSize: 11, color: muted, minWidth: 60 }}>Deviation</span>
+              <input type="range" min="0" max="10" step="0.5" value={dvVal}
+                onChange={(e) => setDvVal(parseFloat(e.target.value))}
+                style={{ flex: 1, accentColor: purp, cursor: "pointer" }} />
+              <span style={{ fontSize: 11, fontWeight: 700, width: 32, color: purp, textAlign: "right" }}>{dvVal}°</span>
+              {pill("E", dvD === "E", () => setDvD("E"), purp)}
+              {pill("W", dvD === "W", () => setDvD("W"), purp)}
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* --- Correction Chain: COG → CTW → CTS → CM → CC --- */}
-      <div style={{ overflowX: "auto" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 0, minWidth: "max-content",
-          background: "#fff", padding: "10px 14px", borderRadius: 10, border: `1px solid ${bdr}` }}>
+      {/* --- Correction Chain: COG → CTW → CTS → CM → CC (prominent, full width) --- */}
+      <div style={{ overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 0, minWidth: "max-content",
+          background: "#fff", padding: "14px 20px", borderRadius: 10, border: `1px solid ${bdr}` }}>
           {chain.map((item, i) => item.label ? (
-            <div key={i} style={{ textAlign: "center", minWidth: 64, padding: "8px 10px",
-              borderRadius: 8, border: `2px solid ${item.color}22`, background: item.color + "0a" }}>
-              <div style={{ fontSize: 9, color: muted, textTransform: "uppercase", fontWeight: 700, marginBottom: 2 }}>{item.label}</div>
-              <div style={{ fontSize: 15, fontWeight: 700, color: item.color }}>{item.value}</div>
-              <div style={{ fontSize: 8, color: muted, marginTop: 1 }}>{item.sub}</div>
+            <div key={i} style={{ textAlign: "center", minWidth: 76, padding: "10px 14px",
+              borderRadius: 10, border: `2px solid ${item.color}30`, background: item.color + "08" }}>
+              <div style={{ fontSize: 10, color: muted, textTransform: "uppercase", fontWeight: 700, letterSpacing: "0.04em", marginBottom: 3 }}>{item.label}</div>
+              <div style={{ fontSize: 20, fontWeight: 800, color: item.color, fontFamily: "system-ui" }}>{item.value}</div>
+              <div style={{ fontSize: 9, color: muted, marginTop: 2 }}>{item.sub}</div>
             </div>
           ) : (
-            <div key={i} style={{ textAlign: "center", padding: "0 4px", color: item.color, fontSize: 9, lineHeight: 1.3 }}>
-              <div style={{ fontSize: 14 }}>→</div>
-              <div style={{ fontWeight: 600, whiteSpace: "nowrap" }}>{item.op}</div>
+            <div key={i} style={{ textAlign: "center", padding: "0 6px", color: item.color, lineHeight: 1.3 }}>
+              <div style={{ fontSize: 18, marginBottom: 2 }}>→</div>
+              <div style={{ fontSize: 10, fontWeight: 700, whiteSpace: "nowrap" }}>{item.op}</div>
             </div>
           ))}
         </div>

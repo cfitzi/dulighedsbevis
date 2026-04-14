@@ -9,16 +9,20 @@ rm -f .git/index.lock
 git add -A
 
 # Commit
-git commit -m "Full course correction chain: COG→CTW→CTS→CM→CC
+git commit -m "Improved current triangle: bigger chain, bearing readout, better layout
 
-Interactive current triangle redesigned:
-- Current drift shown at destination (B) — where you'd end up uncorrected
-- Triangle: A→Bcomp (CTW) + current (Bcomp→B) = A→B (COG)
-- Leeway (wind) with port/starboard toggle and visual arc
-- Full TVMDC chain: variation + deviation → magnetic + compass course
-- Correction chain pipeline displayed below diagram
+Interactive current triangle improvements:
+- Correction chain (COG→CTW→CTS→CM→CC) now much bigger and prominent
+- Bearing readout panel on SVG shows COG/CTW/CTS/SOG in real-time
+- Controls reorganised to 3 spacious columns (was cramped 4-col)
+- CTS gold line proportionally longer and more visible
+- Leeway arc bigger with filled background and label
+- COG line thinner to visually distinguish from CTW
+- Current drift shown at B (where you'd end up uncorrected)
+- 3-digit bearing format (048° not 48°)
+- Slider helper for consistent control layout
+- Current/drift vectors hidden when drift speed is 0
 - Touch support for mobile drag
-- Static study diagram updated to match
 
 Also includes all previous features:
 - Spaced repetition, review mistakes, Danish terms
