@@ -9,19 +9,21 @@ rm -f .git/index.lock
 git add -A
 
 # Commit
-git commit -m "Fix interactive current triangle & all 6 features
+git commit -m "Full course correction chain: COG→CTW→CTS→CM→CC
 
-- Rewrite InteractiveCurrentTriangle: rename vars (ptA/ptB/ptC) to
-  avoid shadowing global color palette C, use literal color strings,
-  responsive SVG with viewBox, drag handles, grid dots, legend box
-- Spaced repetition with weighted random question selection
-- Review mistakes mode in results view
-- Danish nautical terms glossary per topic
-- Exam timer with countdown for mock exams
-- Animated CDMVT pipeline visualisation
-- Fix vessel lights exercise crash (useEffect import)
-- Fix buoy quiz labels leaking answers (showLabel prop)
-- Fix compass rose label clipping (padding)"
+Interactive current triangle redesigned:
+- Current drift shown at destination (B) — where you'd end up uncorrected
+- Triangle: A→Bcomp (CTW) + current (Bcomp→B) = A→B (COG)
+- Leeway (wind) with port/starboard toggle and visual arc
+- Full TVMDC chain: variation + deviation → magnetic + compass course
+- Correction chain pipeline displayed below diagram
+- Touch support for mobile drag
+- Static study diagram updated to match
+
+Also includes all previous features:
+- Spaced repetition, review mistakes, Danish terms
+- Exam timer, CDMVT pipeline, vessel lights fix
+- Buoy quiz label fix, compass rose clipping fix"
 
 # Push
 git push origin main
