@@ -3175,6 +3175,644 @@ function DayShapesExercise() {
   );
 }
 
+// ─── Right of Way Exercise ──────────────────────────────────────────────────
+
+const ROW_SCENARIOS = [
+  // ── Page 1: Power vs Power / Power vs Sail (no wind needed) ──
+  { id: "pp-headon",
+    title: "A & B — Head-on",
+    vessels: [
+      { id: "A", type: "power", color: "#dc2626", x: 80, y: 200, heading: 45, label: "A" },
+      { id: "B", type: "power", color: "#16a34a", x: 320, y: 80, heading: 225, label: "B" },
+    ],
+    wind: null,
+    question: "Two power-driven vessels are meeting nearly head-on. What should happen?",
+    options: [
+      "Both alter course to starboard and pass port-to-port",
+      "A gives way because it is on the left",
+      "B gives way because it is smaller",
+      "The slower vessel gives way",
+    ],
+    answer: 0,
+    rule: "Rule 14",
+    explanation: "When two power-driven vessels are meeting on nearly reciprocal courses (head-on), each shall alter course to starboard so they pass on the port side of the other.",
+  },
+  { id: "pp-crossing-cd",
+    title: "C & D — Power crossing sail",
+    vessels: [
+      { id: "C", type: "sail", color: "#f5f5f5", x: 200, y: 60, heading: 180, label: "C" },
+      { id: "D", type: "power", color: "#eab308", x: 340, y: 180, heading: 270, label: "D" },
+    ],
+    wind: null,
+    question: "A sailing vessel (C) and a power-driven vessel (D) are crossing. Who gives way?",
+    options: [
+      "D (power) gives way to C (sail)",
+      "C (sail) gives way to D (power)",
+      "Both alter to starboard",
+      "The vessel to leeward gives way",
+    ],
+    answer: 0,
+    rule: "Rule 18",
+    explanation: "Rule 18: Power-driven vessels give way to sailing vessels (with exceptions for NUC, RAM, CBD, and fishing). D must keep clear of C.",
+  },
+  { id: "ps-crossing-ef",
+    title: "E & F — Power meets sail",
+    vessels: [
+      { id: "E", type: "power", color: "#dc2626", x: 70, y: 120, heading: 135, label: "E" },
+      { id: "F", type: "sail", color: "#f5f5f5", x: 200, y: 310, heading: 0, label: "F" },
+    ],
+    wind: null,
+    question: "A power vessel (E) is approaching a sailing vessel (F). Who gives way?",
+    options: [
+      "E (power) gives way to F (sail)",
+      "F (sail) gives way — it is on port tack",
+      "The vessel on the right gives way",
+      "Both maintain course and speed",
+    ],
+    answer: 0,
+    rule: "Rule 18",
+    explanation: "Power gives way to sail (Rule 18). The power vessel E must keep clear of the sailing vessel F regardless of the point of approach.",
+  },
+  { id: "pp-overtaking-gk",
+    title: "G & K — Overtaking",
+    vessels: [
+      { id: "G", type: "power", color: "#2563eb", x: 140, y: 260, heading: 30, label: "G" },
+      { id: "K", type: "power", color: "#16a34a", x: 210, y: 130, heading: 40, label: "K" },
+    ],
+    wind: null,
+    question: "Vessel G is coming up behind vessel K on a similar course. Who gives way?",
+    options: [
+      "G (overtaking vessel) must keep clear",
+      "K must speed up or alter course",
+      "The vessel on starboard gives way",
+      "Both reduce speed",
+    ],
+    answer: 0,
+    rule: "Rule 13",
+    explanation: "Rule 13: An overtaking vessel (coming from more than 22.5° abaft the beam) must keep clear. This applies regardless of whether the vessels are powered or sailing. G must keep clear of K.",
+  },
+  { id: "pp-crossing-ij",
+    title: "I & J — Power crossing",
+    vessels: [
+      { id: "I", type: "power", color: "#dc2626", x: 80, y: 300, heading: 15, label: "I" },
+      { id: "J", type: "power", color: "#16a34a", x: 280, y: 280, heading: 315, label: "J" },
+    ],
+    wind: null,
+    question: "Two power vessels are crossing. I has J on its starboard side. Who gives way?",
+    options: [
+      "I gives way (it has the other on its starboard side)",
+      "J gives way because it is approaching from the right",
+      "Both alter to starboard",
+      "The faster vessel gives way",
+    ],
+    answer: 0,
+    rule: "Rule 15",
+    explanation: "Rule 15 (crossing): When two power vessels cross, the one with the other on her starboard side gives way. I has J to starboard, so I must keep clear — and should avoid crossing ahead of J.",
+  },
+  { id: "pp-crossing-kl",
+    title: "K & L — Crossing at angles",
+    vessels: [
+      { id: "K", type: "power", color: "#2563eb", x: 100, y: 120, heading: 150, label: "K" },
+      { id: "L", type: "power", color: "#eab308", x: 340, y: 310, heading: 315, label: "L" },
+    ],
+    wind: null,
+    question: "Two power vessels are crossing. K has L on its starboard side. Who gives way?",
+    options: [
+      "K gives way — the other vessel is on its starboard side",
+      "L gives way because it is approaching from the stern quarter",
+      "Neither — this is a head-on situation",
+      "Both sound one prolonged blast",
+    ],
+    answer: 0,
+    rule: "Rule 15",
+    explanation: "Rule 15: K has L on its starboard side, so K is the give-way vessel. K should alter course to starboard, slow down, or stop — and avoid crossing ahead of L.",
+  },
+  { id: "ps-headon-mn",
+    title: "M & N — Head-on power vessels",
+    vessels: [
+      { id: "M", type: "power", color: "#dc2626", x: 60, y: 270, heading: 30, label: "M" },
+      { id: "N", type: "power", color: "#16a34a", x: 250, y: 80, heading: 210, label: "N" },
+    ],
+    wind: null,
+    question: "Two power vessels are meeting nearly head-on. What must each vessel do?",
+    options: [
+      "Both alter course to starboard (pass port-to-port)",
+      "M gives way because it is red",
+      "N gives way because it is approaching from starboard",
+      "The vessel heading north gives way",
+    ],
+    answer: 0,
+    rule: "Rule 14",
+    explanation: "Rule 14: When two power-driven vessels are meeting head-on, both shall alter course to starboard to pass port-to-port. If in doubt whether the situation is head-on, assume it is and act accordingly.",
+  },
+
+  // ── Page 2: Sail vs Sail with wind — determining tack and ROW ──
+  { id: "ss-night-red-mn",
+    title: "M & N — Night: you see a red sidelight",
+    vessels: [
+      { id: "M", type: "sail", color: "#16a34a", x: 100, y: 220, heading: 340, label: "M" },
+      { id: "N", type: "sail", color: "#f5f5f5", x: 230, y: 100, heading: 160, label: "N (you)" },
+    ],
+    wind: null,
+    question: "You are sailing vessel N at night. You see the RED sidelight of vessel M but cannot determine her tack. What do you do?",
+    options: [
+      "Keep clear of M — if you cannot determine the other's tack, you must give way",
+      "Maintain course and speed — you are the stand-on vessel",
+      "Both vessels should alter to starboard",
+      "Flash your navigation lights to signal M",
+    ],
+    answer: 0,
+    rule: "Rule 12(a)(iii)",
+    explanation: "Rule 12(a)(iii): If a sailing vessel has the wind on the port side and cannot determine whether the other vessel has the wind on port or starboard, she shall keep out of the way. Seeing a red sidelight means the other vessel is to your port — you must give way.",
+  },
+  { id: "ss-night-green-op",
+    title: "O & P — Night: you see a green sidelight",
+    vessels: [
+      { id: "O", type: "sail", color: "#2563eb", x: 130, y: 100, heading: 170, label: "O" },
+      { id: "P", type: "sail", color: "#f5f5f5", x: 280, y: 260, heading: 340, label: "P (you)" },
+    ],
+    wind: null,
+    question: "You are sailing vessel P at night. You see the GREEN sidelight of vessel O but cannot determine her tack. What do you do?",
+    options: [
+      "Keep clear of O — you cannot determine her tack, so you give way",
+      "Maintain course — green light means she gives way to you",
+      "Sound one prolonged blast to warn",
+      "Alter course to port immediately",
+    ],
+    answer: 0,
+    rule: "Rule 12(a)(iii)",
+    explanation: "Rule 12(a)(iii): Same principle — if you have wind on port and cannot determine the other's tack, you keep clear. Even seeing a green sidelight does not change this if you cannot confirm their tack. When in doubt, give way.",
+  },
+  { id: "ss-port-stbd-kl",
+    title: "K & L — Port tack meets starboard tack",
+    vessels: [
+      { id: "K", type: "sail", color: "#eab308", x: 120, y: 100, heading: 160, label: "K" },
+      { id: "L", type: "sail", color: "#2563eb", x: 250, y: 250, heading: 340, label: "L" },
+    ],
+    wind: { angle: 180, label: "Wind" },
+    question: "Wind from the south. K is on port tack, L is on starboard tack. Who gives way?",
+    options: [
+      "K (port tack) gives way to L (starboard tack)",
+      "L (starboard tack) gives way to K",
+      "The windward vessel gives way",
+      "Both alter to starboard",
+    ],
+    answer: 0,
+    rule: "Rule 12(a)(i)",
+    explanation: "Rule 12(a)(i): When two sailing vessels have the wind on different sides, the one with wind on the PORT side (port tack) gives way. K has wind coming over port → K is on port tack → K gives way to L.",
+  },
+  { id: "ss-port-stbd-ij",
+    title: "I & J — Port tack meets starboard tack",
+    vessels: [
+      { id: "I", type: "sail", color: "#16a34a", x: 100, y: 280, heading: 350, label: "I" },
+      { id: "J", type: "sail", color: "#dc2626", x: 250, y: 100, heading: 200, label: "J" },
+    ],
+    wind: { angle: 180, label: "Wind" },
+    question: "Wind from the south. Two sailing vessels are crossing. I is on starboard tack, J is on port tack. Who gives way?",
+    options: [
+      "J (port tack) gives way to I (starboard tack)",
+      "I gives way because it is to leeward",
+      "Both maintain course and speed",
+      "The vessel pointing more into the wind gives way",
+    ],
+    answer: 0,
+    rule: "Rule 12(a)(i)",
+    explanation: "Rule 12(a)(i): Port tack gives way to starboard tack. J has the wind on her port side, so J is on port tack and must keep clear of I (starboard tack).",
+  },
+  { id: "ss-port-upwind-ab",
+    title: "A & B — Both on port tack",
+    vessels: [
+      { id: "A", type: "sail", color: "#16a34a", x: 90, y: 200, heading: 350, label: "A" },
+      { id: "B", type: "sail", color: "#f5f5f5", x: 230, y: 280, heading: 330, label: "B" },
+    ],
+    wind: { angle: 180, label: "Wind" },
+    question: "Wind from the south. Both vessels are on port tack. A is windward of B. Who gives way?",
+    options: [
+      "A (windward) gives way to B (leeward)",
+      "B (leeward) gives way to A",
+      "Neither — same tack, same direction",
+      "The faster vessel gives way",
+    ],
+    answer: 0,
+    rule: "Rule 12(a)(ii)",
+    explanation: "Rule 12(a)(ii): When both sailing vessels have the wind on the same side (same tack), the windward vessel gives way to the leeward vessel. A is windward, so A gives way.",
+  },
+  { id: "ss-port-tack-cd",
+    title: "C & D — Port tack vs starboard tack",
+    vessels: [
+      { id: "C", type: "sail", color: "#f5f5f5", x: 150, y: 80, heading: 190, label: "C" },
+      { id: "D", type: "sail", color: "#eab308", x: 280, y: 260, heading: 330, label: "D" },
+    ],
+    wind: { angle: 180, label: "Wind" },
+    question: "Wind from the south. C is on port tack, D is on starboard tack. Who gives way?",
+    options: [
+      "C (port tack) gives way to D (starboard tack)",
+      "D gives way — it is to leeward",
+      "Both maintain course",
+      "The vessel heading downwind gives way",
+    ],
+    answer: 0,
+    rule: "Rule 12(a)(i)",
+    explanation: "Rule 12(a)(i): Port tack gives way to starboard tack. C has wind on port → port tack → C must give way to D.",
+  },
+
+  // ── Page 3: More sail vs sail with wind arrows ──
+  { id: "ss-wind-ab-3",
+    title: "A & B — Wind from above",
+    vessels: [
+      { id: "A", type: "sail", color: "#dc2626", x: 120, y: 80, heading: 200, label: "A" },
+      { id: "B", type: "sail", color: "#16a34a", x: 170, y: 280, heading: 10, label: "B" },
+    ],
+    wind: { angle: 180, label: "Wind" },
+    question: "Wind from the south. Vessel A is on port tack heading SSW, B is on starboard tack heading N. Who gives way?",
+    options: [
+      "A (port tack) gives way to B (starboard tack)",
+      "B gives way as the vessel heading upwind",
+      "Both vessels alter to starboard",
+      "The vessel to windward gives way",
+    ],
+    answer: 0,
+    rule: "Rule 12(a)(i)",
+    explanation: "The wind is from the south. A has the wind coming over her port side (port tack). B has wind over starboard (starboard tack). Port gives way to starboard — A must keep clear.",
+  },
+  { id: "ss-wind-ef-3",
+    title: "E & F — Wind from above, crossing",
+    vessels: [
+      { id: "E", type: "sail", color: "#dc2626", x: 80, y: 100, heading: 150, label: "E" },
+      { id: "F", type: "sail", color: "#16a34a", x: 200, y: 280, heading: 10, label: "F" },
+    ],
+    wind: { angle: 180, label: "Wind" },
+    question: "Wind from the south. E is on port tack, F is on starboard tack. Who gives way?",
+    options: [
+      "E (port tack) gives way to F (starboard tack)",
+      "F gives way — it is upwind",
+      "Neither — they are not on a collision course",
+      "The vessel heading south gives way",
+    ],
+    answer: 0,
+    rule: "Rule 12(a)(i)",
+    explanation: "Port tack gives way to starboard tack. E has wind from port → port tack → E gives way.",
+  },
+  { id: "ss-same-tack-ij-3",
+    title: "I & J — Same tack, windward/leeward",
+    vessels: [
+      { id: "I", type: "sail", color: "#dc2626", x: 80, y: 300, heading: 350, label: "I" },
+      { id: "J", type: "sail", color: "#16a34a", x: 230, y: 280, heading: 340, label: "J" },
+    ],
+    wind: { angle: 210, label: "Wind" },
+    question: "Wind from the SSW. Both vessels are on the same tack. I is to windward of J. Who gives way?",
+    options: [
+      "I (windward) gives way to J (leeward)",
+      "J gives way — it is ahead",
+      "Both maintain course",
+      "The vessel closest to the wind gives way",
+    ],
+    answer: 0,
+    rule: "Rule 12(a)(ii)",
+    explanation: "Rule 12(a)(ii): Same tack — the windward vessel gives way to the leeward vessel. I is to windward, so I must keep clear of J. The leeward vessel (J) is the stand-on vessel.",
+  },
+  { id: "ss-overtake-kl-3",
+    title: "K & L — Overtaking under sail",
+    vessels: [
+      { id: "K", type: "sail", color: "#eab308", x: 160, y: 290, heading: 20, label: "K" },
+      { id: "L", type: "sail", color: "#2563eb", x: 250, y: 140, heading: 30, label: "L" },
+    ],
+    wind: { angle: 180, label: "Wind" },
+    question: "Wind from the south. K is catching up with L from behind on a similar course. Who gives way?",
+    options: [
+      "K (overtaking) must keep clear regardless of sail rules",
+      "L gives way because K is to windward",
+      "Port tack gives way to starboard tack",
+      "The vessel ahead must speed up or alter course",
+    ],
+    answer: 0,
+    rule: "Rule 13",
+    explanation: "Rule 13: The overtaking vessel ALWAYS keeps clear — this overrides the sail-vs-sail rules. Even if K is on starboard tack and L on port tack, K is overtaking and must keep clear.",
+  },
+  { id: "ss-wind-mn-3",
+    title: "M & N — Port tack, being headed",
+    vessels: [
+      { id: "M", type: "sail", color: "#dc2626", x: 70, y: 160, heading: 0, label: "M" },
+      { id: "N", type: "sail", color: "#16a34a", x: 210, y: 310, heading: 310, label: "N" },
+    ],
+    wind: { angle: 180, label: "Wind" },
+    question: "Wind from the south. M is on starboard tack heading N. N is on port tack heading NW. Who gives way?",
+    options: [
+      "N (port tack) gives way to M (starboard tack)",
+      "M gives way because it is upwind",
+      "Both maintain course — no risk of collision",
+      "The vessel heading more downwind gives way",
+    ],
+    answer: 0,
+    rule: "Rule 12(a)(i)",
+    explanation: "N has the wind on her port side (port tack) and M has the wind on her starboard side (starboard tack). Port tack gives way — N must keep clear of M.",
+  },
+  { id: "ss-wind-op-3",
+    title: "O & P — Crossing under sail",
+    vessels: [
+      { id: "O", type: "sail", color: "#eab308", x: 190, y: 280, heading: 350, label: "O" },
+      { id: "P", type: "sail", color: "#2563eb", x: 300, y: 120, heading: 190, label: "P" },
+    ],
+    wind: { angle: 180, label: "Wind" },
+    question: "Wind from the south. O is on starboard tack, P is on port tack. Who gives way?",
+    options: [
+      "P (port tack) gives way to O (starboard tack)",
+      "O gives way — it is heading into the wind",
+      "Both reduce sail and slow down",
+      "The vessel to windward always gives way",
+    ],
+    answer: 0,
+    rule: "Rule 12(a)(i)",
+    explanation: "Port tack gives way to starboard tack. P has wind on port → port tack → P must keep clear of O (starboard tack).",
+  },
+];
+
+// ── SVG scene renderer for ROW scenarios ──
+function ROWSceneSVG({ scenario, size = 380 }) {
+  const { vessels, wind } = scenario;
+  const pad = 20;
+
+  function vesselPath(heading) {
+    // Boat shape pointing up (heading 0), rotated by heading
+    return `M 0,-14 L 5,-4 L 5,10 Q 5,14 0,14 Q -5,14 -5,10 L -5,-4 Z`;
+  }
+
+  function sailPath() {
+    return `M 0,-8 L 3,4 L -3,4 Z`;
+  }
+
+  return (
+    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}
+      style={{ background: "#e8f4fd", borderRadius: 12, border: "1px solid #bdd8ec" }}>
+      {/* Water pattern */}
+      <defs>
+        <pattern id="waves" width="40" height="20" patternUnits="userSpaceOnUse">
+          <path d="M0 10 Q10 5, 20 10 Q30 15, 40 10" stroke="#c2dff0" fill="none" strokeWidth="0.5" />
+        </pattern>
+      </defs>
+      <rect width={size} height={size} fill="url(#waves)" rx={12} />
+
+      {/* Wind arrow */}
+      {wind && (() => {
+        const wx = size / 2;
+        const wy = 30;
+        const rad = (wind.angle * Math.PI) / 180;
+        const len = 40;
+        const ex = wx + Math.sin(rad) * len;
+        const ey = wy + Math.cos(rad) * len;
+        return (
+          <g>
+            <line x1={wx} y1={wy} x2={ex} y2={ey} stroke="#6b7280" strokeWidth="2" markerEnd="url(#windArrow)" />
+            <defs>
+              <marker id="windArrow" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+                <polygon points="0 0, 8 3, 0 6" fill="#6b7280" />
+              </marker>
+            </defs>
+            <text x={wx} y={wy - 8} textAnchor="middle" fontSize="11" fontWeight="600" fill="#6b7280">{wind.label}</text>
+          </g>
+        );
+      })()}
+
+      {/* Vessels */}
+      {vessels.map(v => {
+        const rad = (v.heading * Math.PI) / 180;
+        // Course line (dashed)
+        const lineLen = 60;
+        const lx = v.x + Math.sin(rad) * lineLen;
+        const ly = v.y - Math.cos(rad) * lineLen;
+        const isSail = v.type === "sail";
+        const fillColor = v.color === "#f5f5f5" ? "#ffffff" : v.color;
+
+        return (
+          <g key={v.id}>
+            {/* Course line */}
+            <line x1={v.x} y1={v.y} x2={lx} y2={ly}
+              stroke={fillColor === "#ffffff" ? "#888" : fillColor} strokeWidth="1.5"
+              strokeDasharray="4 3" opacity="0.6" />
+            {/* Vessel body */}
+            <g transform={`translate(${v.x},${v.y}) rotate(${v.heading})`}>
+              <path d={vesselPath()} fill={fillColor} stroke="#333" strokeWidth="1.2" />
+              {isSail && <path d={sailPath()} fill="none" stroke="#333" strokeWidth="1" />}
+            </g>
+            {/* Label */}
+            <text x={v.x} y={v.y + 26} textAnchor="middle" fontSize="13" fontWeight="700"
+              fill="#1a1a1a" stroke="#fff" strokeWidth="3" paintOrder="stroke">{v.label}</text>
+          </g>
+        );
+      })}
+    </svg>
+  );
+}
+
+// ── Right of Way Exercise Component ──
+function RightOfWayExercise() {
+  const total = ROW_SCENARIOS.length;
+  const [queue, setQueue] = useState(() =>
+    [...Array(total).keys()].sort(() => Math.random() - 0.5)
+  );
+  const [qPos, setQPos] = useState(0);
+  const [selected, setSelected] = useState(null);
+  const [showAnswer, setShowAnswer] = useState(false);
+  const [score, setScore] = useState(0);
+  const [answered, setAnswered] = useState(0);
+  const [mistakes, setMistakes] = useState([]);
+  const [finished, setFinished] = useState(false);
+
+  const scenario = ROW_SCENARIOS[queue[qPos]] || ROW_SCENARIOS[0];
+  const isCorrect = selected !== null && selected === scenario.answer;
+  const pct = answered > 0 ? Math.round((score / answered) * 100) : 0;
+  const isLast = qPos === total - 1;
+
+  function handleSelect(idx) {
+    if (showAnswer) return;
+    setSelected(idx);
+    setShowAnswer(true);
+    setAnswered(a => a + 1);
+    if (idx === scenario.answer) {
+      setScore(s => s + 1);
+    } else {
+      setMistakes(m => [...m, { scenario, chosen: idx }]);
+    }
+  }
+
+  function handleNext() {
+    if (qPos + 1 >= total) {
+      setFinished(true);
+    } else {
+      setQPos(qPos + 1);
+      setSelected(null);
+      setShowAnswer(false);
+    }
+  }
+
+  function handleReset() {
+    const newQ = [...Array(total).keys()].sort(() => Math.random() - 0.5);
+    setQueue(newQ);
+    setQPos(0);
+    setScore(0);
+    setAnswered(0);
+    setMistakes([]);
+    setFinished(false);
+    setSelected(null);
+    setShowAnswer(false);
+  }
+
+  // ── Completion screen ──
+  if (finished) {
+    const finalPct = Math.round((score / total) * 100);
+    const perfect = score === total;
+    return (
+      <div style={{ background: "#fff", borderRadius: 12, padding: "28px", border: `1px solid ${C.border}` }}>
+        <div style={{ textAlign: "center", marginBottom: 20 }}>
+          <div style={{ fontSize: 36, marginBottom: 8 }}>{perfect ? "🎉" : finalPct >= 80 ? "👍" : "📚"}</div>
+          <h3 style={{ margin: "0 0 6px", fontSize: 20, fontWeight: 800 }}>
+            {perfect ? "Perfect — you know the rules!" : finalPct >= 80 ? "Well done, sailor!" : "Keep practising the rules!"}
+          </h3>
+          <div style={{ fontSize: 28, fontWeight: 800, color: finalPct >= 80 ? C.green : finalPct >= 60 ? C.gold : C.red }}>
+            {score}/{total} ({finalPct}%)
+          </div>
+        </div>
+
+        {mistakes.length > 0 && (
+          <div style={{ marginBottom: 20 }}>
+            <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 10, color: C.red }}>
+              Review your mistakes ({mistakes.length}):
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              {mistakes.map((m, i) => (
+                <div key={i} style={{ padding: "12px 14px", background: C.redLight, borderRadius: 8, border: `1px solid ${C.red}22` }}>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: C.text, marginBottom: 4 }}>{m.scenario.title}</div>
+                  <div style={{ fontSize: 11, color: C.red, marginBottom: 4 }}>
+                    You answered: {m.scenario.options[m.chosen]}
+                  </div>
+                  <div style={{ fontSize: 11, color: C.green, fontWeight: 600, marginBottom: 4 }}>
+                    Correct: {m.scenario.options[m.scenario.answer]}
+                  </div>
+                  <div style={{ fontSize: 11, color: C.textSec }}>{m.scenario.rule}: {m.scenario.explanation}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <button onClick={handleReset} style={{
+          width: "100%", padding: "12px 20px", borderRadius: 8, border: "none",
+          background: C.accent, color: "#fff", fontSize: 14, fontWeight: 700, cursor: "pointer",
+        }}>Play Again (new shuffle)</button>
+      </div>
+    );
+  }
+
+  // ── Quiz screen ──
+  return (
+    <div style={{ background: "#fff", borderRadius: 12, padding: "24px", border: `1px solid ${C.border}` }}>
+      {/* Header */}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+        <div>
+          <h3 style={{ margin: "0 0 4px", fontSize: 16, fontWeight: 700 }}>Right of Way</h3>
+          <p style={{ margin: 0, fontSize: 12, color: C.textMuted }}>
+            Who gives way? Study the diagram and decide.
+          </p>
+        </div>
+        <div style={{ textAlign: "right" }}>
+          <div style={{ fontSize: 12, color: C.textMuted, marginBottom: 2 }}>
+            Scenario {qPos + 1} of {total}
+          </div>
+          {answered > 0 && (
+            <div style={{ fontSize: 14, fontWeight: 700, color: pct >= 70 ? C.green : C.gold }}>
+              {score}/{answered} ({pct}%)
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Progress bar */}
+      <div style={{ height: 4, background: C.border, borderRadius: 2, marginBottom: 16, overflow: "hidden" }}>
+        <div style={{ height: "100%", width: `${((qPos + (showAnswer ? 1 : 0)) / total) * 100}%`,
+          background: C.accent, borderRadius: 2, transition: "width 0.3s" }} />
+      </div>
+
+      {/* Scenario title */}
+      <div style={{ fontSize: 13, fontWeight: 700, color: C.accent, marginBottom: 10 }}>{scenario.title}</div>
+
+      {/* SVG scene */}
+      <div style={{ display: "flex", justifyContent: "center", marginBottom: 16 }}>
+        <ROWSceneSVG scenario={scenario} size={340} />
+      </div>
+
+      {/* Legend */}
+      <div style={{ display: "flex", gap: 12, justifyContent: "center", marginBottom: 16, flexWrap: "wrap" }}>
+        {scenario.vessels.map(v => (
+          <div key={v.id} style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 12 }}>
+            <div style={{ width: 12, height: 12, borderRadius: 3, background: v.color === "#f5f5f5" ? "#fff" : v.color, border: "1px solid #888" }} />
+            <span style={{ fontWeight: 600 }}>{v.label}</span>
+            <span style={{ color: C.textMuted }}>({v.type})</span>
+          </div>
+        ))}
+        {scenario.wind && (
+          <div style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 12 }}>
+            <span style={{ color: C.textMuted }}>↓ Wind shown</span>
+          </div>
+        )}
+      </div>
+
+      {/* Question */}
+      <div style={{ fontSize: 14, fontWeight: 600, color: C.text, marginBottom: 14, lineHeight: 1.5 }}>
+        {scenario.question}
+      </div>
+
+      {/* Options */}
+      <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 16 }}>
+        {scenario.options.map((opt, i) => {
+          const isSel = selected === i;
+          const isAns = i === scenario.answer;
+          let bd = C.border, bg = "#fff", fg = C.text;
+          if (showAnswer) {
+            if (isAns) { bd = C.green; bg = C.greenLight; fg = C.green; }
+            else if (isSel) { bd = C.red; bg = C.redLight; fg = C.red; }
+          }
+          return (
+            <button key={i} onClick={() => handleSelect(i)} disabled={showAnswer} style={{
+              padding: "10px 16px", borderRadius: 8, border: `1.5px solid ${bd}`, background: bg,
+              color: fg, fontSize: 13, fontWeight: 600, cursor: showAnswer ? "default" : "pointer",
+              textAlign: "left", transition: "all 0.15s",
+            }}>
+              {showAnswer && isAns && <span style={{ marginRight: 6 }}>✓</span>}
+              {showAnswer && isSel && !isAns && <span style={{ marginRight: 6 }}>✗</span>}
+              {opt}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Explanation */}
+      {showAnswer && (
+        <div style={{ padding: "14px 16px", background: isCorrect ? C.greenLight : C.redLight, borderRadius: 10,
+          border: `1px solid ${isCorrect ? C.green + "33" : C.red + "33"}`, marginBottom: 14 }}>
+          <div style={{ fontSize: 13, fontWeight: 700, color: isCorrect ? C.green : C.red, marginBottom: 6 }}>
+            {isCorrect ? "Correct!" : "Not quite."}
+          </div>
+          <div style={{ fontSize: 12, fontWeight: 700, color: C.accent, marginBottom: 4 }}>{scenario.rule}</div>
+          <div style={{ fontSize: 12, color: C.textSec, lineHeight: 1.6 }}>{scenario.explanation}</div>
+        </div>
+      )}
+
+      {/* Controls */}
+      <div style={{ display: "flex", gap: 10 }}>
+        <button onClick={handleNext} disabled={!showAnswer} style={{
+          flex: 1, padding: "9px 16px", borderRadius: 8, border: "none",
+          background: showAnswer ? C.accent : C.border, color: showAnswer ? "#fff" : C.textMuted,
+          fontSize: 13, fontWeight: 600, cursor: showAnswer ? "pointer" : "not-allowed", transition: "all 0.15s",
+        }}>{isLast ? "See Results" : `Next (${qPos + 2}/${total})`}</button>
+        <button onClick={handleReset} style={{
+          padding: "9px 16px", borderRadius: 8, border: `1px solid ${C.border}`, background: "#fff",
+          color: C.text, fontSize: 13, fontWeight: 600, cursor: "pointer",
+        }}>Restart</button>
+      </div>
+    </div>
+  );
+}
+
 // ─── QUESTION BANK (100+ questions) ──────────────────────────────────────────
 
 const QUESTIONS = [
@@ -3876,8 +4514,8 @@ function StudyView({ topic, mastery, onBack, onQuiz }) {
 
       {/* Tab bar for COLREGS topic */}
       {hasLightsExercise && (
-        <div style={{ display: "flex", gap: 4, marginBottom: 16, background: "#f1f0ed", borderRadius: 10, padding: 4 }}>
-          {[["study", "Study Material"], ["lights", "Vessel Lights"], ["sounds", "Sound Signals"], ["shapes", "Day Shapes"]].map(([val, label]) => (
+        <div style={{ display: "flex", gap: 4, marginBottom: 16, background: "#f1f0ed", borderRadius: 10, padding: 4, flexWrap: "wrap" }}>
+          {[["study", "Study"], ["row", "Right of Way"], ["lights", "Lights"], ["sounds", "Sounds"], ["shapes", "Shapes"]].map(([val, label]) => (
             <button key={val} onClick={() => setActiveTab(val)} style={{
               flex: 1, padding: "9px 12px", borderRadius: 8, border: "none", fontSize: 13, fontWeight: 600, cursor: "pointer",
               background: activeTab === val ? "#fff" : "transparent",
@@ -3952,6 +4590,13 @@ function StudyView({ topic, mastery, onBack, onQuiz }) {
       {hasShapesExercise && activeTab === "shapes" && (
         <div>
           <DayShapesExercise />
+        </div>
+      )}
+
+      {/* Right of Way Exercise tab (COLREGS only) */}
+      {hasLightsExercise && activeTab === "row" && (
+        <div>
+          <RightOfWayExercise />
         </div>
       )}
 
