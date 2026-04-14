@@ -2295,6 +2295,661 @@ function BuoyIdentificationExercise() {
   );
 }
 
+// ─── Sound Signals Data ──────────────────────────────────────────────────────
+
+const SOUND_SIGNALS = [
+  { id: "1short", name: "One short blast", pattern: [{ type: "short" }], meaning: "I am altering my course to starboard", rule: "Rule 34(a)" },
+  { id: "2short", name: "Two short blasts", pattern: [{ type: "short" }, { type: "short" }], meaning: "I am altering my course to port", rule: "Rule 34(a)" },
+  { id: "3short", name: "Three short blasts", pattern: [{ type: "short" }, { type: "short" }, { type: "short" }], meaning: "I am operating astern propulsion", rule: "Rule 34(a)" },
+  { id: "5short", name: "Five or more short rapid blasts", pattern: [{ type: "short" }, { type: "short" }, { type: "short" }, { type: "short" }, { type: "short" }], meaning: "Doubt / danger signal — I do not understand your intentions", rule: "Rule 34(d)" },
+  { id: "1prolonged", name: "One prolonged blast", pattern: [{ type: "long" }], meaning: "Warning signal: approaching a bend or area of obscured visibility", rule: "Rule 34(e)" },
+  { id: "1long2short", name: "One prolonged + two short", pattern: [{ type: "long" }, { type: "short" }, { type: "short" }], meaning: "I intend to overtake you on your starboard side", rule: "Rule 34(c)(i)" },
+  { id: "1long1short", name: "One prolonged + one short", pattern: [{ type: "long" }, { type: "short" }], meaning: "I intend to overtake you on your port side (inland waters variant)", rule: "Rule 34(c)" },
+  { id: "2long1short", name: "Two prolonged + one short", pattern: [{ type: "long" }, { type: "long" }, { type: "short" }], meaning: "Agreement to overtaking on starboard side", rule: "Rule 34(c)(ii)" },
+  { id: "fog-power", name: "Fog: one prolonged every 2 min", pattern: [{ type: "long" }], meaning: "Power-driven vessel making way in restricted visibility", rule: "Rule 35(a)", fog: true },
+  { id: "fog-power-stopped", name: "Fog: two prolonged every 2 min", pattern: [{ type: "long" }, { type: "long" }], meaning: "Power-driven vessel underway but stopped / not making way", rule: "Rule 35(b)", fog: true },
+  { id: "fog-nuc-ram-sail-fish-tow", name: "Fog: one prolonged + two short", pattern: [{ type: "long" }, { type: "short" }, { type: "short" }], meaning: "Vessel NUC, RAM, constrained by draught, sailing, fishing, or towing — in restricted visibility", rule: "Rule 35(c)", fog: true },
+  { id: "fog-towed", name: "Fog: one prolonged + three short", pattern: [{ type: "long" }, { type: "short" }, { type: "short" }, { type: "short" }], meaning: "Last vessel being towed (if manned) in restricted visibility", rule: "Rule 35(e)", fog: true },
+];
+
+// Helper function to play sound signals using Web Audio API
+function playSignalAudio(pattern) {
+  const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+  let time = audioContext.currentTime;
+
+  pattern.forEach(note => {
+    const freq = note.type === "short" ? 440 : 350; // 440Hz for short, 350Hz for long
+    const duration = note.type === "short" ? 0.2 : 1.2; // 200ms short, 1200ms long
+    const silence = note.type === "short" ? 0.3 : 0.4; // 300ms short, 400ms long
+
+    const osc = audioContext.createOscillator();
+    const gain = audioContext.createGain();
+
+    osc.connect(gain);
+    gain.connect(audioContext.destination);
+
+    osc.type = "square";
+    osc.frequency.value = freq;
+
+    // Fade in 20ms
+    gain.gain.setValueAtTime(0, time);
+    gain.gain.linearRampToValueAtTime(0.3, time + 0.02);
+    // Hold tone
+    gain.gain.setValueAtTime(0.3, time + duration - 0.02);
+    // Fade out 20ms
+    gain.gain.linearRampToValueAtTime(0, time + duration);
+
+    osc.start(time);
+    osc.stop(time + duration);
+
+    time += duration + silence;
+  });
+}
+
+// SVG pattern display component
+function SignalPatternSVG({ pattern, width = 200, height = 30 }) {
+  let xPos = 10;
+  const bars = [];
+
+  pattern.forEach((note, i) => {
+    const barWidth = note.type === "short" ? 20 : 60;
+    bars.push(
+      <rect key={i} x={xPos} y={8} width={barWidth} height={14} fill="#4b5563" rx={2} />
+    );
+    xPos += barWidth + 8;
+  });
+
+  return (
+    <svg width={Math.max(width, xPos + 10)} height={height} viewBox={`0 0 ${Math.max(width, xPos + 10)} ${height}`} style={{ background: "#f5f5f5", borderRadius: 8 }}>
+      {bars}
+    </svg>
+  );
+}
+
+// Sound Signals Exercise Component
+function SoundSignalsExercise() {
+  const totalSignals = SOUND_SIGNALS.length;
+
+  const [queue, setQueue] = useState(() =>
+    [...Array(totalSignals).keys()].sort(() => Math.random() - 0.5)
+  );
+  const [qPos, setQPos] = useState(0);
+  const [options, setOptions] = useState([]);
+  const [selected, setSelected] = useState(null);
+  const [showAnswer, setShowAnswer] = useState(false);
+  const [score, setScore] = useState(0);
+  const [answered, setAnswered] = useState(0);
+  const [mistakes, setMistakes] = useState([]);
+  const [finished, setFinished] = useState(false);
+  const [mode, setMode] = useState("audio"); // audio or meaning
+  const [isPlaying, setIsPlaying] = useState(false);
+
+  function generateQuestion(idx) {
+    const correct = SOUND_SIGNALS[idx];
+    const others = SOUND_SIGNALS.filter(s => s.id !== correct.id);
+    const shuffledOthers = [...others].sort(() => Math.random() - 0.5).slice(0, 3);
+    setOptions([correct, ...shuffledOthers].sort(() => Math.random() - 0.5));
+    setSelected(null);
+    setShowAnswer(false);
+  }
+
+  useEffect(() => { generateQuestion(queue[0]); }, []);
+
+  const signal = SOUND_SIGNALS[queue[qPos]] || SOUND_SIGNALS[0];
+
+  function handlePlaySignal() {
+    setIsPlaying(true);
+    playSignalAudio(signal.pattern);
+    setTimeout(() => setIsPlaying(false), 3000);
+  }
+
+  function handleSelect(idx) {
+    if (showAnswer) return;
+    setSelected(idx);
+    setShowAnswer(true);
+    setAnswered(a => a + 1);
+    const correct = options[idx].id === signal.id;
+    if (correct) {
+      setScore(s => s + 1);
+    } else {
+      setMistakes(m => [...m, { signal, chosen: options[idx] }]);
+    }
+  }
+
+  function handleNext() {
+    const next = qPos + 1;
+    if (next >= totalSignals) {
+      setFinished(true);
+    } else {
+      setQPos(next);
+      generateQuestion(queue[next]);
+    }
+  }
+
+  function handleReset() {
+    const newQ = [...Array(totalSignals).keys()].sort(() => Math.random() - 0.5);
+    setQueue(newQ);
+    setQPos(0);
+    setScore(0);
+    setAnswered(0);
+    setMistakes([]);
+    setFinished(false);
+    generateQuestion(newQ[0]);
+  }
+
+  const isCorrect = selected !== null && options[selected]?.id === signal.id;
+  const pct = answered > 0 ? Math.round((score / answered) * 100) : 0;
+  const isLast = qPos === totalSignals - 1;
+
+  if (finished) {
+    const finalPct = Math.round((score / totalSignals) * 100);
+    const perfect = score === totalSignals;
+    return (
+      <div style={{ background: "#fff", borderRadius: 12, padding: "28px", border: `1px solid ${C.border}` }}>
+        <div style={{ textAlign: "center", marginBottom: 20 }}>
+          <div style={{ fontSize: 36, marginBottom: 8 }}>{perfect ? "🎉" : finalPct >= 80 ? "👍" : "📚"}</div>
+          <h3 style={{ margin: "0 0 6px", fontSize: 20, fontWeight: 800 }}>
+            {perfect ? "Perfect score!" : finalPct >= 80 ? "Well done!" : "Keep practising!"}
+          </h3>
+          <div style={{ fontSize: 28, fontWeight: 800, color: finalPct >= 80 ? C.green : finalPct >= 60 ? C.gold : C.red }}>
+            {score}/{totalSignals} ({finalPct}%)
+          </div>
+          <div style={{ fontSize: 12, color: C.textMuted, marginTop: 4 }}>
+            All {totalSignals} sound signals tested
+          </div>
+        </div>
+
+        {mistakes.length > 0 && (
+          <div style={{ marginBottom: 20 }}>
+            <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 10, color: C.red }}>
+              Review your mistakes ({mistakes.length}):
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              {mistakes.map((m, i) => (
+                <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 12, padding: "10px 14px",
+                  background: C.redLight, borderRadius: 8, border: `1px solid ${C.red}22` }}>
+                  <div style={{ marginTop: 2 }}>
+                    <SignalPatternSVG pattern={m.signal.pattern} width={120} height={24} />
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>{m.signal.name}</div>
+                    <div style={{ fontSize: 11, color: C.red }}>You answered: {m.chosen.name}</div>
+                    <div style={{ fontSize: 11, color: C.textSec, marginTop: 2 }}>{m.signal.meaning}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <button onClick={handleReset} style={{
+          width: "100%", padding: "12px 20px", borderRadius: 8, border: "none",
+          background: C.accent, color: "#fff", fontSize: 14, fontWeight: 700, cursor: "pointer",
+        }}>Play Again (new shuffle)</button>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ background: "#fff", borderRadius: 12, padding: "24px", border: `1px solid ${C.border}` }}>
+      {/* Header */}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+        <div>
+          <h3 style={{ margin: "0 0 4px", fontSize: 16, fontWeight: 700 }}>Identify the Signal</h3>
+          <p style={{ margin: 0, fontSize: 12, color: C.textMuted }}>
+            {mode === "audio" ? "Listen to the sound and identify the signal" : "Read the meaning and pick the correct signal"}
+          </p>
+        </div>
+        <div style={{ textAlign: "right" }}>
+          <div style={{ fontSize: 12, color: C.textMuted, marginBottom: 2 }}>
+            Question {qPos + 1} of {totalSignals}
+          </div>
+          {answered > 0 && (
+            <div style={{ fontSize: 14, fontWeight: 700, color: pct >= 70 ? C.green : C.gold }}>
+              {score}/{answered} ({pct}%)
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Progress bar */}
+      <div style={{ height: 4, background: C.border, borderRadius: 2, marginBottom: 16, overflow: "hidden" }}>
+        <div style={{ height: "100%", width: `${((qPos + (showAnswer ? 1 : 0)) / totalSignals) * 100}%`,
+          background: C.accent, borderRadius: 2, transition: "width 0.3s" }} />
+      </div>
+
+      {/* Mode toggle */}
+      <div style={{ display: "flex", gap: 4, marginBottom: 20, background: "#f1f0ed", borderRadius: 8, padding: 3, width: "fit-content" }}>
+        {[["audio", "Hear signal → Name it"], ["meaning", "Read meaning → Pick signal"]].map(([val, label]) => (
+          <button key={val} onClick={() => { setMode(val); handleReset(); }} style={{
+            padding: "6px 14px", borderRadius: 6, border: "none", fontSize: 12, fontWeight: 600, cursor: "pointer",
+            background: mode === val ? "#fff" : "transparent",
+            color: mode === val ? C.accent : C.textMuted,
+            boxShadow: mode === val ? "0 1px 3px rgba(0,0,0,0.1)" : "none",
+          }}>{label}</button>
+        ))}
+      </div>
+
+      {mode === "audio" ? (
+        <div>
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", marginBottom: 20, padding: "20px 16px", background: "#fafaf8", borderRadius: 10, gap: 12 }}>
+            <button onClick={handlePlaySignal} disabled={isPlaying} style={{
+              padding: "14px 24px", borderRadius: 8, border: "none",
+              background: C.accent, color: "#fff", fontSize: 14, fontWeight: 700, cursor: isPlaying ? "not-allowed" : "pointer",
+              opacity: isPlaying ? 0.7 : 1,
+            }}>
+              {isPlaying ? "Playing..." : "🔊 Play Signal"}
+            </button>
+            <SignalPatternSVG pattern={signal.pattern} width={160} height={28} />
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 16 }}>
+            {options.map((opt, i) => {
+              const isSel = selected === i;
+              const isAns = opt.id === signal.id;
+              let bd = C.border, bg = "#fff", fg = C.text;
+              if (showAnswer) {
+                if (isAns) { bd = C.green; bg = C.greenLight; fg = C.green; }
+                else if (isSel) { bd = C.red; bg = C.redLight; fg = C.red; }
+              }
+              return (
+                <button key={opt.id} onClick={() => handleSelect(i)} disabled={showAnswer} style={{
+                  padding: "10px 16px", borderRadius: 8, border: `1.5px solid ${bd}`, background: bg,
+                  color: fg, fontSize: 13, fontWeight: 600, cursor: showAnswer ? "default" : "pointer",
+                  textAlign: "left", transition: "all 0.15s",
+                }}>
+                  {showAnswer && isAns && <span style={{ marginRight: 6 }}>✓</span>}
+                  {showAnswer && isSel && !isAns && <span style={{ marginRight: 6 }}>✗</span>}
+                  {opt.name}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      ) : (
+        <div>
+          <div style={{ textAlign: "center", marginBottom: 20, padding: "16px 20px", background: "#fafaf8", borderRadius: 10 }}>
+            <div style={{ fontSize: 14, fontWeight: 700, color: C.text, marginBottom: 6 }}>{signal.meaning}</div>
+            <div style={{ fontSize: 11, color: C.textMuted }}>Which signal is this?</div>
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 8, marginBottom: 16 }}>
+            {options.map((opt, i) => {
+              const isSel = selected === i;
+              const isAns = opt.id === signal.id;
+              let bd = C.border, bg = "#fff";
+              if (showAnswer) {
+                if (isAns) { bd = C.green; bg = C.greenLight; }
+                else if (isSel) { bd = C.red; bg = C.redLight; }
+              }
+              return (
+                <button key={opt.id} onClick={() => handleSelect(i)} disabled={showAnswer} style={{
+                  padding: "12px 14px", borderRadius: 10, border: `2px solid ${bd}`, background: bg,
+                  cursor: showAnswer ? "default" : "pointer", transition: "all 0.15s",
+                  display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 6,
+                }}>
+                  <div style={{ fontWeight: 600, fontSize: 13, color: showAnswer && isAns ? C.green : showAnswer && isSel ? C.red : C.text }}>
+                    {opt.name}
+                  </div>
+                  <SignalPatternSVG pattern={opt.pattern} width={140} height={24} />
+                  {showAnswer && (
+                    <span style={{ fontSize: 11, fontWeight: 600, color: isAns ? C.green : isSel ? C.red : C.textMuted, alignSelf: "flex-end" }}>
+                      {isAns ? "✓ Correct" : isSel ? "✗" : ""}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Answer details */}
+      {showAnswer && (
+        <div style={{ padding: "14px 16px", background: isCorrect ? C.greenLight : C.redLight, borderRadius: 10, border: `1px solid ${isCorrect ? C.green + "33" : C.red + "33"}`, marginBottom: 14 }}>
+          <div style={{ fontSize: 13, fontWeight: 700, color: isCorrect ? C.green : C.red, marginBottom: 6 }}>
+            {isCorrect ? "Correct!" : "Not quite."}
+          </div>
+          <div style={{ fontSize: 13, fontWeight: 700, color: C.text, marginBottom: 4 }}>{signal.name}</div>
+          <div style={{ fontSize: 12, color: C.textSec, lineHeight: 1.6, marginBottom: 6 }}>{signal.meaning}</div>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 12, fontSize: 11 }}>
+            <div><span style={{ color: C.textMuted }}>Rule:</span> <span style={{ fontWeight: 600 }}>{signal.rule}</span></div>
+            {signal.fog && <div style={{ color: C.orange, fontWeight: 600 }}>⚠ Fog signal</div>}
+          </div>
+        </div>
+      )}
+
+      {/* Controls */}
+      <div style={{ display: "flex", gap: 10 }}>
+        <button onClick={handleNext} disabled={!showAnswer} style={{
+          flex: 1, padding: "9px 16px", borderRadius: 8, border: "none",
+          background: showAnswer ? C.accent : C.border, color: showAnswer ? "#fff" : C.textMuted,
+          fontSize: 13, fontWeight: 600, cursor: showAnswer ? "pointer" : "not-allowed", transition: "all 0.15s",
+        }}>{isLast ? "See Results" : `Next (${qPos + 2}/${totalSignals})`}</button>
+        {mode === "audio" && (
+          <button onClick={handlePlaySignal} disabled={isPlaying || showAnswer} style={{
+            padding: "9px 16px", borderRadius: 8, border: `1px solid ${C.border}`, background: "#fff",
+            color: C.text, fontSize: 13, fontWeight: 600, cursor: (isPlaying || showAnswer) ? "not-allowed" : "pointer",
+            opacity: (isPlaying || showAnswer) ? 0.6 : 1,
+          }}>🔊 Play Again</button>
+        )}
+        <button onClick={handleReset} style={{
+          padding: "9px 16px", borderRadius: 8, border: `1px solid ${C.border}`, background: "#fff",
+          color: C.text, fontSize: 13, fontWeight: 600, cursor: "pointer",
+        }}>Restart</button>
+      </div>
+    </div>
+  );
+}
+
+// ─── Day Shapes Data ────────────────────────────────────────────────────────
+
+const DAY_SHAPES = [
+  { id: "anchor", name: "Vessel at Anchor", shapes: ["ball"], description: "A single black ball in the forepart", rule: "Rule 30(a)" },
+  { id: "aground", name: "Vessel Aground", shapes: ["ball", "ball", "ball"], description: "Three black balls in a vertical line", rule: "Rule 30(d)" },
+  { id: "nuc", name: "Vessel Not Under Command (NUC)", shapes: ["ball", "ball"], description: "Two black balls in a vertical line", rule: "Rule 27(a)" },
+  { id: "ram", name: "Vessel Restricted in Ability to Manoeuvre (RAM)", shapes: ["ball", "diamond", "ball"], description: "Ball-diamond-ball in a vertical line", rule: "Rule 27(b)" },
+  { id: "cbd", name: "Vessel Constrained by Draught", shapes: ["cylinder"], description: "A cylinder (only used by vessels >20m in a narrow channel)", rule: "Rule 28" },
+  { id: "fishing-trawling", name: "Vessel Fishing (Trawling)", shapes: ["cone-up", "cone-down"], description: "Two cones point-to-point forming a diamond shape (or: apex together)", rule: "Rule 26(b)" },
+  { id: "fishing-other", name: "Vessel Fishing (other than trawling)", shapes: ["cone-up", "cone-down"], description: "Two cones point-to-point (same as trawling). With gear extending >150m: additional cone in direction of gear", rule: "Rule 26(c)" },
+  { id: "sailing-motor", name: "Sailing Vessel Under Motor", shapes: ["cone-down"], description: "One cone apex downward — sailing vessel proceeding under engine", rule: "Rule 25(e)" },
+  { id: "towing-long", name: "Vessel Towing (tow >200m)", shapes: ["diamond"], description: "A diamond shape where it can best be seen. Tow exceeds 200m length", rule: "Rule 24(a)" },
+  { id: "mine-clearance", name: "Vessel Engaged in Mine Clearance", shapes: ["ball", "ball", "ball"], description: "Three balls: one at the foremast head, one at each end of the fore yard. Indicates danger within 1000m", rule: "Rule 27(f)" },
+];
+
+// Day Shape SVG component
+function DayShapeSVG({ shapes, size = 90 }) {
+  const w = size, h = Math.max(size, shapes.length * 24 + 40);
+  const cx = w / 2;
+  let yPos = 20;
+  const elements = [];
+
+  // Pole
+  elements.push(
+    <line key="pole" x1={cx} y1={18} x2={cx} y2={h - 10} stroke="#999" strokeWidth="2" />
+  );
+
+  // Shapes
+  shapes.forEach((shape, i) => {
+    if (shape === "ball") {
+      elements.push(
+        <circle key={`${i}-${shape}`} cx={cx} cy={yPos} r={8} fill="#000" />
+      );
+    } else if (shape === "diamond") {
+      elements.push(
+        <polygon key={`${i}-${shape}`} points={`${cx},${yPos - 10} ${cx + 10},${yPos} ${cx},${yPos + 10} ${cx - 10},${yPos}`} fill="#000" />
+      );
+    } else if (shape === "cone-up") {
+      elements.push(
+        <polygon key={`${i}-${shape}`} points={`${cx},${yPos - 12} ${cx - 8},${yPos + 8} ${cx + 8},${yPos + 8}`} fill="#000" />
+      );
+    } else if (shape === "cone-down") {
+      elements.push(
+        <polygon key={`${i}-${shape}`} points={`${cx},${yPos + 12} ${cx - 8},${yPos - 8} ${cx + 8},${yPos - 8}`} fill="#000" />
+      );
+    } else if (shape === "cylinder") {
+      elements.push(
+        <g key={`${i}-${shape}`}>
+          <rect x={cx - 7} y={yPos - 10} width={14} height={20} fill="#000" />
+          <ellipse cx={cx} cy={yPos - 10} rx={7} ry={4} fill="#1a1a1a" />
+        </g>
+      );
+    }
+    yPos += 24;
+  });
+
+  return (
+    <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} style={{ background: "#f5f5f5", borderRadius: 8 }}>
+      {elements}
+    </svg>
+  );
+}
+
+// Day Shapes Exercise Component
+function DayShapesExercise() {
+  const totalShapes = DAY_SHAPES.length;
+
+  const [queue, setQueue] = useState(() =>
+    [...Array(totalShapes).keys()].sort(() => Math.random() - 0.5)
+  );
+  const [qPos, setQPos] = useState(0);
+  const [options, setOptions] = useState([]);
+  const [selected, setSelected] = useState(null);
+  const [showAnswer, setShowAnswer] = useState(false);
+  const [score, setScore] = useState(0);
+  const [answered, setAnswered] = useState(0);
+  const [mistakes, setMistakes] = useState([]);
+  const [finished, setFinished] = useState(false);
+  const [mode, setMode] = useState("visual"); // visual or name
+
+  function generateQuestion(idx) {
+    const correct = DAY_SHAPES[idx];
+    const others = DAY_SHAPES.filter(s => s.id !== correct.id);
+    const shuffledOthers = [...others].sort(() => Math.random() - 0.5).slice(0, 3);
+    setOptions([correct, ...shuffledOthers].sort(() => Math.random() - 0.5));
+    setSelected(null);
+    setShowAnswer(false);
+  }
+
+  useEffect(() => { generateQuestion(queue[0]); }, []);
+
+  const shape = DAY_SHAPES[queue[qPos]] || DAY_SHAPES[0];
+
+  function handleSelect(idx) {
+    if (showAnswer) return;
+    setSelected(idx);
+    setShowAnswer(true);
+    setAnswered(a => a + 1);
+    const correct = options[idx].id === shape.id;
+    if (correct) {
+      setScore(s => s + 1);
+    } else {
+      setMistakes(m => [...m, { shape, chosen: options[idx] }]);
+    }
+  }
+
+  function handleNext() {
+    const next = qPos + 1;
+    if (next >= totalShapes) {
+      setFinished(true);
+    } else {
+      setQPos(next);
+      generateQuestion(queue[next]);
+    }
+  }
+
+  function handleReset() {
+    const newQ = [...Array(totalShapes).keys()].sort(() => Math.random() - 0.5);
+    setQueue(newQ);
+    setQPos(0);
+    setScore(0);
+    setAnswered(0);
+    setMistakes([]);
+    setFinished(false);
+    generateQuestion(newQ[0]);
+  }
+
+  const isCorrect = selected !== null && options[selected]?.id === shape.id;
+  const pct = answered > 0 ? Math.round((score / answered) * 100) : 0;
+  const isLast = qPos === totalShapes - 1;
+
+  if (finished) {
+    const finalPct = Math.round((score / totalShapes) * 100);
+    const perfect = score === totalShapes;
+    return (
+      <div style={{ background: "#fff", borderRadius: 12, padding: "28px", border: `1px solid ${C.border}` }}>
+        <div style={{ textAlign: "center", marginBottom: 20 }}>
+          <div style={{ fontSize: 36, marginBottom: 8 }}>{perfect ? "🎉" : finalPct >= 80 ? "👍" : "📚"}</div>
+          <h3 style={{ margin: "0 0 6px", fontSize: 20, fontWeight: 800 }}>
+            {perfect ? "Perfect score!" : finalPct >= 80 ? "Well done!" : "Keep practising!"}
+          </h3>
+          <div style={{ fontSize: 28, fontWeight: 800, color: finalPct >= 80 ? C.green : finalPct >= 60 ? C.gold : C.red }}>
+            {score}/{totalShapes} ({finalPct}%)
+          </div>
+          <div style={{ fontSize: 12, color: C.textMuted, marginTop: 4 }}>
+            All {totalShapes} day shapes tested
+          </div>
+        </div>
+
+        {mistakes.length > 0 && (
+          <div style={{ marginBottom: 20 }}>
+            <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 10, color: C.red }}>
+              Review your mistakes ({mistakes.length}):
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              {mistakes.map((m, i) => (
+                <div key={i} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 14px",
+                  background: C.redLight, borderRadius: 8, border: `1px solid ${C.red}22` }}>
+                  <DayShapeSVG shapes={m.shape.shapes} size={60} />
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>{m.shape.name}</div>
+                    <div style={{ fontSize: 11, color: C.red }}>You answered: {m.chosen.name}</div>
+                    <div style={{ fontSize: 11, color: C.textSec, marginTop: 2 }}>{m.shape.description}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <button onClick={handleReset} style={{
+          width: "100%", padding: "12px 20px", borderRadius: 8, border: "none",
+          background: C.accent, color: "#fff", fontSize: 14, fontWeight: 700, cursor: "pointer",
+        }}>Play Again (new shuffle)</button>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ background: "#fff", borderRadius: 12, padding: "24px", border: `1px solid ${C.border}` }}>
+      {/* Header */}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+        <div>
+          <h3 style={{ margin: "0 0 4px", fontSize: 16, fontWeight: 700 }}>Identify the Day Shape</h3>
+          <p style={{ margin: 0, fontSize: 12, color: C.textMuted }}>
+            {mode === "visual" ? "Look at the shape and identify the vessel" : "Read the vessel type and pick the correct shape"}
+          </p>
+        </div>
+        <div style={{ textAlign: "right" }}>
+          <div style={{ fontSize: 12, color: C.textMuted, marginBottom: 2 }}>
+            Question {qPos + 1} of {totalShapes}
+          </div>
+          {answered > 0 && (
+            <div style={{ fontSize: 14, fontWeight: 700, color: pct >= 70 ? C.green : C.gold }}>
+              {score}/{answered} ({pct}%)
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Progress bar */}
+      <div style={{ height: 4, background: C.border, borderRadius: 2, marginBottom: 16, overflow: "hidden" }}>
+        <div style={{ height: "100%", width: `${((qPos + (showAnswer ? 1 : 0)) / totalShapes) * 100}%`,
+          background: C.accent, borderRadius: 2, transition: "width 0.3s" }} />
+      </div>
+
+      {/* Mode toggle */}
+      <div style={{ display: "flex", gap: 4, marginBottom: 20, background: "#f1f0ed", borderRadius: 8, padding: 3, width: "fit-content" }}>
+        {[["visual", "See shape → Name it"], ["name", "See name → Pick shape"]].map(([val, label]) => (
+          <button key={val} onClick={() => { setMode(val); handleReset(); }} style={{
+            padding: "6px 14px", borderRadius: 6, border: "none", fontSize: 12, fontWeight: 600, cursor: "pointer",
+            background: mode === val ? "#fff" : "transparent",
+            color: mode === val ? C.accent : C.textMuted,
+            boxShadow: mode === val ? "0 1px 3px rgba(0,0,0,0.1)" : "none",
+          }}>{label}</button>
+        ))}
+      </div>
+
+      {mode === "visual" ? (
+        <div>
+          <div style={{ display: "flex", justifyContent: "center", marginBottom: 20, padding: "16px", background: "#fafaf8", borderRadius: 10 }}>
+            <DayShapeSVG shapes={shape.shapes} size={80} />
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 16 }}>
+            {options.map((opt, i) => {
+              const isSel = selected === i;
+              const isAns = opt.id === shape.id;
+              let bd = C.border, bg = "#fff", fg = C.text;
+              if (showAnswer) {
+                if (isAns) { bd = C.green; bg = C.greenLight; fg = C.green; }
+                else if (isSel) { bd = C.red; bg = C.redLight; fg = C.red; }
+              }
+              return (
+                <button key={opt.id} onClick={() => handleSelect(i)} disabled={showAnswer} style={{
+                  padding: "10px 16px", borderRadius: 8, border: `1.5px solid ${bd}`, background: bg,
+                  color: fg, fontSize: 13, fontWeight: 600, cursor: showAnswer ? "default" : "pointer",
+                  textAlign: "left", transition: "all 0.15s",
+                }}>
+                  {showAnswer && isAns && <span style={{ marginRight: 6 }}>✓</span>}
+                  {showAnswer && isSel && !isAns && <span style={{ marginRight: 6 }}>✗</span>}
+                  {opt.name}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      ) : (
+        <div>
+          <div style={{ textAlign: "center", marginBottom: 20, padding: "16px 20px", background: "#fafaf8", borderRadius: 10 }}>
+            <div style={{ fontSize: 18, fontWeight: 700, color: C.text }}>{shape.name}</div>
+            <div style={{ fontSize: 12, color: C.textMuted, marginTop: 4 }}>Which shape is this?</div>
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 10, marginBottom: 16 }}>
+            {options.map((opt, i) => {
+              const isSel = selected === i;
+              const isAns = opt.id === shape.id;
+              let bd = C.border, bg = "#fff";
+              if (showAnswer) {
+                if (isAns) { bd = C.green; bg = C.greenLight; }
+                else if (isSel) { bd = C.red; bg = C.redLight; }
+              }
+              return (
+                <button key={opt.id} onClick={() => handleSelect(i)} disabled={showAnswer} style={{
+                  padding: "12px 8px", borderRadius: 10, border: `2px solid ${bd}`, background: bg,
+                  cursor: showAnswer ? "default" : "pointer", transition: "all 0.15s",
+                  display: "flex", flexDirection: "column", alignItems: "center", gap: 4,
+                }}>
+                  <DayShapeSVG shapes={opt.shapes} size={70} />
+                  {showAnswer && (
+                    <span style={{ fontSize: 11, fontWeight: 600, color: isAns ? C.green : isSel ? C.red : C.textMuted }}>
+                      {isAns ? "✓ Correct" : isSel ? "✗" : ""}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Answer details */}
+      {showAnswer && (
+        <div style={{ padding: "14px 16px", background: isCorrect ? C.greenLight : C.redLight, borderRadius: 10, border: `1px solid ${isCorrect ? C.green + "33" : C.red + "33"}`, marginBottom: 14 }}>
+          <div style={{ fontSize: 13, fontWeight: 700, color: isCorrect ? C.green : C.red, marginBottom: 6 }}>
+            {isCorrect ? "Correct!" : "Not quite."}
+          </div>
+          <div style={{ fontSize: 13, fontWeight: 700, color: C.text, marginBottom: 4 }}>{shape.name}</div>
+          <div style={{ fontSize: 12, color: C.textSec, lineHeight: 1.6, marginBottom: 6 }}>{shape.description}</div>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 12, fontSize: 11 }}>
+            <div><span style={{ color: C.textMuted }}>Rule:</span> <span style={{ fontWeight: 600 }}>{shape.rule}</span></div>
+          </div>
+        </div>
+      )}
+
+      {/* Controls */}
+      <div style={{ display: "flex", gap: 10 }}>
+        <button onClick={handleNext} disabled={!showAnswer} style={{
+          flex: 1, padding: "9px 16px", borderRadius: 8, border: "none",
+          background: showAnswer ? C.accent : C.border, color: showAnswer ? "#fff" : C.textMuted,
+          fontSize: 13, fontWeight: 600, cursor: showAnswer ? "pointer" : "not-allowed", transition: "all 0.15s",
+        }}>{isLast ? "See Results" : `Next (${qPos + 2}/${totalShapes})`}</button>
+        <button onClick={handleReset} style={{
+          padding: "9px 16px", borderRadius: 8, border: `1px solid ${C.border}`, background: "#fff",
+          color: C.text, fontSize: 13, fontWeight: 600, cursor: "pointer",
+        }}>Restart</button>
+      </div>
+    </div>
+  );
+}
+
 // ─── QUESTION BANK (100+ questions) ──────────────────────────────────────────
 
 const QUESTIONS = [
@@ -2621,56 +3276,98 @@ export default function App() {
   }, [progress]);
 
   function startQuiz(topicId, withTimer = false) {
-    const qs = QUESTIONS.filter(q => topicId === "all" ? true : q.topic === topicId);
+    // Handle mock exam mode
+    const isMock = topicId === "mock";
+    let actualTopicId = isMock ? "all" : topicId;
+    let qs = QUESTIONS.filter(q => actualTopicId === "all" ? true : q.topic === actualTopicId);
 
-    // Weighted selection based on question history
-    const weighted = qs.map((q, idx) => {
-      const qIdx = QUESTIONS.indexOf(q);
-      const hist = questionHistory[qIdx] || { attempts: 0, correct: 0, lastSeen: 0 };
-
-      // Never seen gets high priority (weight = 10)
-      if (hist.attempts === 0) return { q, idx: qIdx, weight: 10 };
-
-      // Low success rate gets high priority
-      const accuracy = hist.correct / hist.attempts;
-      const ageMs = Date.now() - hist.lastSeen;
-      const ageDays = ageMs / (1000 * 60 * 60 * 24);
-
-      // Base weight: inverse of accuracy (low accuracy = high weight)
-      let weight = accuracy === 0 ? 8 : (1 - accuracy) * 6;
-
-      // Recently seen correct questions get lower priority
-      if (accuracy >= 0.8 && ageDays < 1) {
-        weight = 0.5;
+    // For mock exam, select 40 questions proportionally by topic
+    let count = 25;
+    if (isMock) {
+      count = 40;
+      // Topic distribution for 40 questions:
+      // Topic 0: ~8, Topic 1: ~8, Topic 2: ~7, Topic 3: ~5, Topic 4: ~5, Topic 5: ~4, Topic 6: ~3
+      const topicQuotas = { 0: 8, 1: 8, 2: 7, 3: 5, 4: 5, 5: 4, 6: 3 };
+      const selected = [];
+      for (const tid in topicQuotas) {
+        const quota = topicQuotas[tid];
+        const topicQs = qs.filter(q => q.topic === parseInt(tid));
+        const topicWeighted = topicQs.map((q, idx) => {
+          const qIdx = QUESTIONS.indexOf(q);
+          const hist = questionHistory[qIdx] || { attempts: 0, correct: 0, lastSeen: 0 };
+          if (hist.attempts === 0) return { q, idx: qIdx, weight: 10 };
+          const accuracy = hist.correct / hist.attempts;
+          const ageMs = Date.now() - hist.lastSeen;
+          const ageDays = ageMs / (1000 * 60 * 60 * 24);
+          let weight = accuracy === 0 ? 8 : (1 - accuracy) * 6;
+          if (accuracy >= 0.8 && ageDays < 1) weight = 0.5;
+          return { q, idx: qIdx, weight };
+        });
+        const remaining = [...topicWeighted];
+        for (let i = 0; i < quota && remaining.length > 0; i++) {
+          const totalWeight = remaining.reduce((s, x) => s + x.weight, 0);
+          let rand = Math.random() * totalWeight;
+          let pickedIdx = 0;
+          for (let j = 0; j < remaining.length; j++) {
+            rand -= remaining[j].weight;
+            if (rand <= 0) { pickedIdx = j; break; }
+          }
+          selected.push(remaining[pickedIdx].q);
+          remaining.splice(pickedIdx, 1);
+        }
       }
+      qs = selected;
+    } else {
+      // Weighted selection based on question history
+      const weighted = qs.map((q, idx) => {
+        const qIdx = QUESTIONS.indexOf(q);
+        const hist = questionHistory[qIdx] || { attempts: 0, correct: 0, lastSeen: 0 };
 
-      return { q, idx: qIdx, weight };
-    });
+        // Never seen gets high priority (weight = 10)
+        if (hist.attempts === 0) return { q, idx: qIdx, weight: 10 };
 
-    // Weighted random selection without replacement
-    const selected = [];
-    const count = topicId === "all" ? Math.min(25, weighted.length) : Math.min(12, weighted.length);
-    const remaining = [...weighted];
+        // Low success rate gets high priority
+        const accuracy = hist.correct / hist.attempts;
+        const ageMs = Date.now() - hist.lastSeen;
+        const ageDays = ageMs / (1000 * 60 * 60 * 24);
 
-    while (selected.length < count && remaining.length > 0) {
-      const totalWeight = remaining.reduce((s, x) => s + x.weight, 0);
-      let rand = Math.random() * totalWeight;
-      let pickedIdx = 0;
-      for (let i = 0; i < remaining.length; i++) {
-        rand -= remaining[i].weight;
-        if (rand <= 0) { pickedIdx = i; break; }
+        // Base weight: inverse of accuracy (low accuracy = high weight)
+        let weight = accuracy === 0 ? 8 : (1 - accuracy) * 6;
+
+        // Recently seen correct questions get lower priority
+        if (accuracy >= 0.8 && ageDays < 1) {
+          weight = 0.5;
+        }
+
+        return { q, idx: qIdx, weight };
+      });
+
+      // Weighted random selection without replacement
+      const selected = [];
+      count = actualTopicId === "all" ? Math.min(25, weighted.length) : Math.min(12, weighted.length);
+      const remaining = [...weighted];
+
+      while (selected.length < count && remaining.length > 0) {
+        const totalWeight = remaining.reduce((s, x) => s + x.weight, 0);
+        let rand = Math.random() * totalWeight;
+        let pickedIdx = 0;
+        for (let i = 0; i < remaining.length; i++) {
+          rand -= remaining[i].weight;
+          if (rand <= 0) { pickedIdx = i; break; }
+        }
+        selected.push(remaining[pickedIdx].q);
+        remaining.splice(pickedIdx, 1);
       }
-      selected.push(remaining[pickedIdx].q);
-      remaining.splice(pickedIdx, 1);
+      qs = selected;
     }
 
-    // Set time limit in seconds: 45 min for full exam, 15 min for topic quiz
+    // Set time limit in seconds: 45 min for mock exam, 45 min for full exam, 15 min for topic quiz
     let timeLimit = null;
-    if (withTimer) {
-      timeLimit = topicId === "all" ? 45 * 60 : 15 * 60;
+    if (withTimer || isMock) {
+      timeLimit = isMock ? 45 * 60 : (actualTopicId === "all" ? 45 * 60 : 15 * 60);
     }
 
-    setQuizState({ topicId, questions: selected, currentIndex: 0, answers: [], selectedOption: null, showExplanation: false, timeLimit, timeRemaining: timeLimit, startTime: Date.now() });
+    setQuizState({ topicId: isMock ? "mock" : actualTopicId, questions: qs, currentIndex: 0, answers: [], selectedOption: null, showExplanation: false, timeLimit, timeRemaining: timeLimit, startTime: Date.now() });
     setView("quiz");
   }
 
@@ -2804,6 +3501,24 @@ function Dashboard({ topics, mastery, overall, progress, onStudy, onQuiz, onRese
         {total > 0 && <Btn label="Reset" onClick={onReset} ghost small />}
       </div>
 
+      {/* Mock Exam Card */}
+      <div style={{
+        background: "#fff", borderRadius: 14, padding: "28px", marginBottom: 28,
+        border: `2px solid ${C.accent}`, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 20, flexWrap: "wrap",
+      }}>
+        <div>
+          <div style={{ fontSize: 13, color: C.accent, fontWeight: 700, textTransform: "uppercase", marginBottom: 4, letterSpacing: "0.05em" }}>Ready to test yourself?</div>
+          <h3 style={{ margin: "0 0 8px", fontSize: 20, fontWeight: 800 }}>Mock Exam</h3>
+          <p style={{ margin: 0, color: C.textSec, fontSize: 13, lineHeight: 1.5 }}>
+            40 questions — 45 minutes — 70% to pass. Proportionally weighted across all 7 topics.
+          </p>
+        </div>
+        <button onClick={() => onQuiz("mock")} style={{
+          padding: "12px 28px", borderRadius: 10, border: "none",
+          background: C.accent, color: "#fff", fontSize: 14, fontWeight: 700, cursor: "pointer", whiteSpace: "nowrap",
+        }}>Start Exam</button>
+      </div>
+
       {/* Topic grid */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(310px, 1fr))", gap: 14 }}>
         {topics.map((t, i) => {
@@ -2870,6 +3585,8 @@ function StudyView({ topic, mastery, onBack, onQuiz }) {
   const hasTools = topic.id === 0; // Navigation gets the calculators
   const hasLightsExercise = topic.id === 1; // COLREGS gets the vessel lights exercise
   const hasBuoyExercise = topic.id === 2; // Buoyage gets the mark identification exercise
+  const hasSoundsExercise = topic.id === 1; // COLREGS gets the sound signals exercise
+  const hasShapesExercise = topic.id === 1; // COLREGS gets the day shapes exercise
 
   return (
     <div>
@@ -2913,7 +3630,7 @@ function StudyView({ topic, mastery, onBack, onQuiz }) {
       {/* Tab bar for COLREGS topic */}
       {hasLightsExercise && (
         <div style={{ display: "flex", gap: 4, marginBottom: 16, background: "#f1f0ed", borderRadius: 10, padding: 4 }}>
-          {[["study", "Study Material"], ["lights", "Vessel Lights Exercise"]].map(([val, label]) => (
+          {[["study", "Study Material"], ["lights", "Vessel Lights"], ["sounds", "Sound Signals"], ["shapes", "Day Shapes"]].map(([val, label]) => (
             <button key={val} onClick={() => setActiveTab(val)} style={{
               flex: 1, padding: "9px 12px", borderRadius: 8, border: "none", fontSize: 13, fontWeight: 600, cursor: "pointer",
               background: activeTab === val ? "#fff" : "transparent",
@@ -2977,6 +3694,20 @@ function StudyView({ topic, mastery, onBack, onQuiz }) {
         </div>
       )}
 
+      {/* Sound Signals Exercise tab (COLREGS only) */}
+      {hasSoundsExercise && activeTab === "sounds" && (
+        <div>
+          <SoundSignalsExercise />
+        </div>
+      )}
+
+      {/* Day Shapes Exercise tab (COLREGS only) */}
+      {hasShapesExercise && activeTab === "shapes" && (
+        <div>
+          <DayShapesExercise />
+        </div>
+      )}
+
       {/* Buoy Identification Exercise tab (Buoyage only) */}
       {hasBuoyExercise && activeTab === "buoys" && (
         <div>
@@ -2985,7 +3716,7 @@ function StudyView({ topic, mastery, onBack, onQuiz }) {
       )}
 
       {/* Diagrams (only on study tab, or for non-navigation topics) */}
-      {((hasTools || hasLightsExercise || hasBuoyExercise) ? activeTab === "study" : true) && hasDiagrams && (
+      {((hasTools || hasLightsExercise || hasBuoyExercise || hasSoundsExercise || hasShapesExercise) ? activeTab === "study" : true) && hasDiagrams && (
         <div style={{ background: "#fff", borderRadius: 12, padding: "20px 24px", marginBottom: 16, border: `1px solid ${C.border}` }}>
           <h3 style={{ margin: "0 0 14px", fontSize: 14, fontWeight: 700, color: C.textSec }}>Visual Reference</h3>
           {topic.id === 0 && (
@@ -3019,7 +3750,7 @@ function StudyView({ topic, mastery, onBack, onQuiz }) {
       )}
 
       {/* Study sections (only show on study tab for nav/colregs, always for other topics) */}
-      {((hasTools || hasLightsExercise || hasBuoyExercise) ? activeTab === "study" : true) && topic.studyContent.map((s, i) => (
+      {((hasTools || hasLightsExercise || hasBuoyExercise || hasSoundsExercise || hasShapesExercise) ? activeTab === "study" : true) && topic.studyContent.map((s, i) => (
         <div key={i} style={{ background: "#fff", borderRadius: 10, marginBottom: 8, border: `1px solid ${open === i ? topic.color + "44" : C.border}`, overflow: "hidden", transition: "border-color 0.2s" }}>
           <button onClick={() => setOpen(open === i ? -1 : i)} style={{
             width: "100%", padding: "14px 20px", background: "none", border: "none",
@@ -3042,7 +3773,7 @@ function StudyView({ topic, mastery, onBack, onQuiz }) {
       ))}
 
       {/* Danish Terminology Reference */}
-      {((hasTools || hasLightsExercise || hasBuoyExercise) ? activeTab === "study" : true) && DANISH_TERMS[topic.id] && (
+      {((hasTools || hasLightsExercise || hasBuoyExercise || hasSoundsExercise || hasShapesExercise) ? activeTab === "study" : true) && DANISH_TERMS[topic.id] && (
         <div style={{ background: "#fff", borderRadius: 10, marginBottom: 8, border: `1px solid ${open === topic.studyContent.length ? topic.color + "44" : C.border}`, overflow: "hidden", transition: "border-color 0.2s" }}>
           <button onClick={() => setOpen(open === topic.studyContent.length ? -1 : topic.studyContent.length)} style={{
             width: "100%", padding: "14px 20px", background: "none", border: "none",
@@ -3342,7 +4073,7 @@ function QuizView({ qs, onAnswer, onNext, onQuit }) {
 // ─── Results View ────────────────────────────────────────────────────────────
 
 function ResultsView({ qs, topics, onRetry, onHome }) {
-  const { questions, answers, topicId } = qs;
+  const { questions, answers, topicId, timeRemaining, timeLimit } = qs;
   const [reviewMode, setReviewMode] = useState(false);
   const [reviewIndex, setReviewIndex] = useState(0);
 
@@ -3350,6 +4081,10 @@ function ResultsView({ qs, topics, onRetry, onHome }) {
   const total = answers.length;
   const pct = Math.round((correct / total) * 100);
   const passed = pct >= 70;
+  const isMockExam = topicId === "mock";
+
+  // Calculate time taken (in minutes)
+  const timeTaken = timeRemaining !== null && timeLimit !== null ? Math.floor((timeLimit - timeRemaining) / 60) : null;
 
   const mistakeIndices = useMemo(() => {
     return answers
@@ -3428,16 +4163,48 @@ function ResultsView({ qs, topics, onRetry, onHome }) {
 
   return (
     <div style={{ maxWidth: 620, margin: "0 auto" }}>
-      <div style={{ background: "#fff", borderRadius: 14, padding: "36px 28px", textAlign: "center", border: `1px solid ${C.border}`, marginBottom: 20 }}>
-        <div style={{ fontSize: 48, marginBottom: 6 }}>{passed ? "🎉" : "📖"}</div>
-        <h2 style={{ margin: "0 0 6px", fontSize: 24, fontWeight: 800, color: passed ? C.green : C.gold }}>
-          {pct}% — {passed ? "Well done!" : "Keep practising!"}
-        </h2>
-        <p style={{ color: C.textSec, fontSize: 14, margin: "0 0 16px" }}>
-          {correct} of {total} correct. {passed ? "You are on track." : "Aim for 70%+ to be exam-ready."}
-        </p>
-        <div style={{ width: "50%", margin: "0 auto" }}><Bar value={pct} color={passed ? C.green : C.gold} h={8} /></div>
-      </div>
+      {isMockExam ? (
+        <div style={{ background: "#fff", borderRadius: 14, padding: "36px 28px", border: `1px solid ${C.border}`, marginBottom: 20 }}>
+          <div style={{ textAlign: "center", marginBottom: 28 }}>
+            <div style={{ fontSize: 48, marginBottom: 8 }}>{passed ? "🎉" : "⚠"}</div>
+            <h2 style={{ margin: "0 0 6px", fontSize: 28, fontWeight: 800, color: passed ? C.green : C.red }}>
+              {passed ? "PASS" : "FAIL"}
+            </h2>
+            <div style={{ fontSize: 13, color: C.textMuted, marginBottom: 16, textTransform: "uppercase", letterSpacing: "0.05em", fontWeight: 600 }}>Mock Exam Results</div>
+            <div style={{ fontSize: 48, fontWeight: 800, color: C.text, marginBottom: 6 }}>
+              {correct}/{total}
+            </div>
+            <div style={{ fontSize: 32, fontWeight: 800, color: passed ? C.green : C.red, marginBottom: 16 }}>
+              {pct}%
+            </div>
+            <div style={{ width: "100%", marginBottom: 20 }}><Bar value={pct} color={passed ? C.green : C.red} h={8} /></div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 16 }}>
+              <div style={{ padding: 12, background: C.bg, borderRadius: 8 }}>
+                <div style={{ fontSize: 11, color: C.textMuted, marginBottom: 4, textTransform: "uppercase" }}>Required</div>
+                <div style={{ fontSize: 18, fontWeight: 800 }}>28/40</div>
+              </div>
+              <div style={{ padding: 12, background: C.bg, borderRadius: 8 }}>
+                <div style={{ fontSize: 11, color: C.textMuted, marginBottom: 4, textTransform: "uppercase" }}>Time Taken</div>
+                <div style={{ fontSize: 18, fontWeight: 800 }}>{timeTaken !== null ? `${timeTaken} min` : "N/A"}</div>
+              </div>
+            </div>
+            <div style={{ fontSize: 13, color: C.textSec, lineHeight: 1.6 }}>
+              {passed ? "Excellent! You are exam-ready. Score 70% or higher to pass." : "You need 70% (28/40) to pass. Keep practising to improve."}
+            </div>
+          </div>
+        </div>
+      ) : (
+        <div style={{ background: "#fff", borderRadius: 14, padding: "36px 28px", textAlign: "center", border: `1px solid ${C.border}`, marginBottom: 20 }}>
+          <div style={{ fontSize: 48, marginBottom: 6 }}>{passed ? "🎉" : "📖"}</div>
+          <h2 style={{ margin: "0 0 6px", fontSize: 24, fontWeight: 800, color: passed ? C.green : C.gold }}>
+            {pct}% — {passed ? "Well done!" : "Keep practising!"}
+          </h2>
+          <p style={{ color: C.textSec, fontSize: 14, margin: "0 0 16px" }}>
+            {correct} of {total} correct. {passed ? "You are on track." : "Aim for 70%+ to be exam-ready."}
+          </p>
+          <div style={{ width: "50%", margin: "0 auto" }}><Bar value={pct} color={passed ? C.green : C.gold} h={8} /></div>
+        </div>
+      )}
 
       {Object.keys(breakdown).length > 1 && (
         <div style={{ background: "#fff", borderRadius: 12, padding: "18px 22px", marginBottom: 16, border: `1px solid ${C.border}` }}>
@@ -3472,7 +4239,7 @@ function ResultsView({ qs, topics, onRetry, onHome }) {
 
       <div style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap" }}>
         {mistakeIndices.length > 0 && <Btn label="Review Mistakes" onClick={() => { setReviewIndex(0); setReviewMode(true); }} />}
-        <Btn label="Try Again" onClick={onRetry} ghost />
+        <Btn label={isMockExam ? "Retake Exam" : "Try Again"} onClick={onRetry} ghost />
         <Btn label="Dashboard" onClick={onHome} />
       </div>
     </div>
