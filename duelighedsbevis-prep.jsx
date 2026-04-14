@@ -216,153 +216,148 @@ function LateralMarksSVG() {
 }
 
 function InteractiveCurrentTriangle() {
-  const [A, setA] = useState({ x: 80, y: 280 });
-  const [B, setB] = useState({ x: 350, y: 80 });
+  const W = 600, H = 400;
+  const [ptA, setPtA] = useState({ x: 80, y: 320 });
+  const [ptB, setPtB] = useState({ x: 520, y: 80 });
   const [currentSpeed, setCurrentSpeed] = useState(1.5);
-  const [currentDir, setCurrentDir] = useState(45);
-  const [boatSpeed, setBoatSpeed] = useState(4);
+  const [currentDir, setCurrentDir] = useState(135);
+  const [boatSpeed, setBoatSpeed] = useState(5);
   const [dragging, setDragging] = useState(null);
   const svgRef = useRef(null);
 
-  const scale = 30; // pixels per knot
+  const scale = 40; // pixels per knot — bigger triangle
 
-  // Calculate current vector endpoint C
-  const currentRad = (currentDir - 90) * Math.PI / 180;
-  const C = {
-    x: A.x + currentSpeed * scale * Math.cos(currentRad),
-    y: A.y + currentSpeed * scale * Math.sin(currentRad),
+  // Current vector endpoint (where current pushes you from A)
+  const curRad = (currentDir - 90) * Math.PI / 180;
+  const ptC = {
+    x: ptA.x + currentSpeed * scale * Math.cos(curRad),
+    y: ptA.y + currentSpeed * scale * Math.sin(curRad),
   };
 
-  // Calculate course to steer (from C to B)
-  const boatVectorLength = boatSpeed * scale;
-  const desiredTrackDist = Math.sqrt((B.x - A.x) ** 2 + (B.y - A.y) ** 2);
-
-  // CMG: bearing from A to B
-  const cmgRad = Math.atan2(B.y - A.y, B.x - A.x);
-  const cmg = Math.round((cmgRad * 180 / Math.PI + 90 + 360) % 360);
-
-  // SOG: distance from A to B divided by time (if speed is boat speed * time)
-  const sog = Math.sqrt((B.x - C.x) ** 2 + (B.y - C.y) ** 2) / scale;
+  // CMG: bearing from A to B (screen coords → nautical: 0°=up, CW)
+  const cmg = Math.round((Math.atan2(ptB.x - ptA.x, ptA.y - ptB.y) * 180 / Math.PI + 360) % 360);
 
   // CTS: bearing from C to B
-  const ctsRad = Math.atan2(B.y - C.y, B.x - C.x);
-  const cts = Math.round((ctsRad * 180 / Math.PI + 90 + 360) % 360);
+  const cts = Math.round((Math.atan2(ptB.x - ptC.x, ptC.y - ptB.y) * 180 / Math.PI + 360) % 360);
 
-  const handleMouseDown = (e, point) => {
-    setDragging(point);
+  // SOG approximation: effective ground speed along A→B
+  const distAB = Math.sqrt((ptB.x - ptA.x) ** 2 + (ptB.y - ptA.y) ** 2);
+  const distCB = Math.sqrt((ptB.x - ptC.x) ** 2 + (ptB.y - ptC.y) ** 2);
+  const sog = (distCB > 0) ? (boatSpeed * distAB / distCB) : 0;
+
+  const getSvgPoint = (e) => {
+    if (!svgRef.current) return null;
+    const rect = svgRef.current.getBoundingClientRect();
+    return { x: Math.max(10, Math.min(W - 10, (e.clientX - rect.left) * W / rect.width)),
+             y: Math.max(10, Math.min(H - 10, (e.clientY - rect.top) * H / rect.height)) };
   };
 
   const handleMouseMove = (e) => {
-    if (!dragging || !svgRef.current) return;
-    const rect = svgRef.current.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-
-    if (dragging === 'A') setA({ x, y });
-    if (dragging === 'B') setB({ x, y });
+    if (!dragging) return;
+    const p = getSvgPoint(e);
+    if (!p) return;
+    if (dragging === "A") setPtA(p);
+    if (dragging === "B") setPtB(p);
   };
 
-  const handleMouseUp = () => {
-    setDragging(null);
+  const arrowHead = (fx, fy, tx, ty) => {
+    const a = Math.atan2(ty - fy, tx - fx), s = 10;
+    return `${tx},${ty} ${tx - s * Math.cos(a - 0.4)},${ty - s * Math.sin(a - 0.4)} ${tx - s * Math.cos(a + 0.4)},${ty - s * Math.sin(a + 0.4)}`;
   };
 
-  const arrow = (fx, fy, tx, ty) => {
-    const a = Math.atan2(ty - fy, tx - fx);
-    const s = 10;
-    return `${tx},${ty} ${tx - s * Math.cos(a - 0.35)},${ty - s * Math.sin(a - 0.35)} ${tx - s * Math.cos(a + 0.35)},${ty - s * Math.sin(a + 0.35)}`;
-  };
+  // Colours (using literal strings to avoid shadowing palette C)
+  const blue = "#2563eb", red = "#dc2626", green = "#16a34a", muted = "#64748b", txt = "#1e293b", bdr = "#e2e8f0", card = "#ffffff";
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
       <svg
         ref={svgRef}
-        width={420}
-        height={350}
-        viewBox="0 0 420 350"
-        style={{ background: "#e6f2ff", borderRadius: 8, border: `1px solid ${C.border}`, cursor: dragging ? "grabbing" : "grab" }}
+        viewBox={`0 0 ${W} ${H}`}
+        style={{ width: "100%", maxWidth: W, aspectRatio: `${W}/${H}`, background: "#e8f0fe", borderRadius: 10, border: `1px solid ${bdr}`, cursor: dragging ? "grabbing" : "default", userSelect: "none" }}
         onMouseMove={handleMouseMove}
-        onMouseUp={handleMouseUp}
-        onMouseLeave={handleMouseUp}
+        onMouseUp={() => setDragging(null)}
+        onMouseLeave={() => setDragging(null)}
       >
-        {/* Legend */}
-        <line x1={16} y1={14} x2={36} y2={14} stroke={C.accent} strokeWidth="2.5" />
-        <text x={42} y={18} fill={C.textSec} fontSize={10} fontFamily="system-ui">Desired track (CMG)</text>
+        {/* Grid dots */}
+        {Array.from({ length: 15 }, (_, i) => Array.from({ length: 10 }, (_, j) => (
+          <circle key={`${i}-${j}`} cx={i * 40 + 20} cy={j * 40 + 20} r={1} fill="#b0c4de" opacity={0.5} />
+        )))}
 
-        <line x1={16} y1={30} x2={36} y2={30} stroke={C.red} strokeWidth="2.5" strokeDasharray="5,3" />
-        <text x={42} y={34} fill={C.textSec} fontSize={10} fontFamily="system-ui">Current vector</text>
+        {/* Legend — top right */}
+        <rect x={W - 195} y={8} width={185} height={56} rx={6} fill="white" fillOpacity={0.85} stroke={bdr} strokeWidth={0.5} />
+        <line x1={W - 185} y1={22} x2={W - 165} y2={22} stroke={blue} strokeWidth={2.5} />
+        <text x={W - 160} y={26} fill={muted} fontSize={10} fontFamily="system-ui">Desired track (CMG)</text>
+        <line x1={W - 185} y1={38} x2={W - 165} y2={38} stroke={red} strokeWidth={2.5} strokeDasharray="5,3" />
+        <text x={W - 160} y={42} fill={muted} fontSize={10} fontFamily="system-ui">Current (set & drift)</text>
+        <line x1={W - 185} y1={54} x2={W - 165} y2={54} stroke={green} strokeWidth={2.5} />
+        <text x={W - 160} y={58} fill={muted} fontSize={10} fontFamily="system-ui">Course to steer (CTS)</text>
 
-        <line x1={16} y1={46} x2={36} y2={46} stroke="#16a34a" strokeWidth="2.5" />
-        <text x={42} y={50} fill={C.textSec} fontSize={10} fontFamily="system-ui">Course to steer</text>
+        {/* 1. Desired track A→B (blue) */}
+        <line x1={ptA.x} y1={ptA.y} x2={ptB.x} y2={ptB.y} stroke={blue} strokeWidth={2.5} opacity={0.7} />
+        <polygon points={arrowHead(ptA.x, ptA.y, ptB.x, ptB.y)} fill={blue} opacity={0.7} />
 
-        {/* Desired track A→B (blue) */}
-        <line x1={A.x} y1={A.y} x2={B.x} y2={B.y} stroke={C.accent} strokeWidth="2.5" />
-        <polygon points={arrow(A.x, A.y, B.x, B.y)} fill={C.accent} />
+        {/* 2. Current vector A→C (red dashed) */}
+        <line x1={ptA.x} y1={ptA.y} x2={ptC.x} y2={ptC.y} stroke={red} strokeWidth={3} strokeDasharray="7,4" />
+        <polygon points={arrowHead(ptA.x, ptA.y, ptC.x, ptC.y)} fill={red} />
 
-        {/* Current vector A→C (red dashed) */}
-        <line x1={A.x} y1={A.y} x2={C.x} y2={C.y} stroke={C.red} strokeWidth="2.5" strokeDasharray="6,4" />
-        <polygon points={arrow(A.x, A.y, C.x, C.y)} fill={C.red} />
+        {/* 3. Course to steer C→B (green) */}
+        <line x1={ptC.x} y1={ptC.y} x2={ptB.x} y2={ptB.y} stroke={green} strokeWidth={3} />
+        <polygon points={arrowHead(ptC.x, ptC.y, ptB.x, ptB.y)} fill={green} />
 
-        {/* Course to steer C→B (green) */}
-        <line x1={C.x} y1={C.y} x2={B.x} y2={B.y} stroke="#16a34a" strokeWidth="2.5" />
-        <polygon points={arrow(C.x, C.y, B.x, B.y)} fill="#16a34a" />
+        {/* Draggable point A */}
+        <circle cx={ptA.x} cy={ptA.y} r={8} fill={txt} stroke="white" strokeWidth={2}
+          style={{ cursor: "grab" }} onMouseDown={() => setDragging("A")} />
+        <text x={ptA.x - 16} y={ptA.y + 22} fill={txt} fontSize={14} fontWeight="700" fontFamily="system-ui">A</text>
 
-        {/* Point A (draggable) */}
-        <circle cx={A.x} cy={A.y} r={6} fill={C.text} style={{ cursor: "grab" }}
-          onMouseDown={(e) => handleMouseDown(e, 'A')} />
-        <text x={A.x - 14} y={A.y + 16} fill={C.text} fontSize={13} fontWeight="700" fontFamily="system-ui">A</text>
+        {/* Draggable point B */}
+        <circle cx={ptB.x} cy={ptB.y} r={8} fill={txt} stroke="white" strokeWidth={2}
+          style={{ cursor: "grab" }} onMouseDown={() => setDragging("B")} />
+        <text x={ptB.x + 12} y={ptB.y - 6} fill={txt} fontSize={14} fontWeight="700" fontFamily="system-ui">B</text>
 
-        {/* Point B (draggable) */}
-        <circle cx={B.x} cy={B.y} r={6} fill={C.text} style={{ cursor: "grab" }}
-          onMouseDown={(e) => handleMouseDown(e, 'B')} />
-        <text x={B.x + 8} y={B.y - 8} fill={C.text} fontSize={13} fontWeight="700" fontFamily="system-ui">B</text>
+        {/* Point C (current endpoint) */}
+        <circle cx={ptC.x} cy={ptC.y} r={6} fill={red} stroke="white" strokeWidth={2} />
+        <text x={ptC.x + 10} y={ptC.y + 4} fill={red} fontSize={11} fontWeight="600" fontFamily="system-ui">C</text>
 
-        {/* Point C (current endpoint, not draggable) */}
-        <circle cx={C.x} cy={C.y} r={5} fill={C.red} stroke="#fff" strokeWidth="1.5" />
+        {/* Instruction */}
+        <text x={W / 2} y={H - 10} textAnchor="middle" fill={muted} fontSize={10} fontFamily="system-ui" opacity={0.7}>
+          Drag points A and B to change the desired track
+        </text>
       </svg>
 
       {/* Sliders */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 12, background: C.bgCard, padding: "14px", borderRadius: 8, border: `1px solid ${C.border}` }}>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, background: card, padding: "14px 16px", borderRadius: 8, border: `1px solid ${bdr}` }}>
         <div>
-          <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, marginBottom: 6 }}>
-            <label style={{ fontWeight: 600 }}>Current Speed: {currentSpeed.toFixed(1)} kn</label>
+          <div style={{ fontSize: 11, fontWeight: 600, marginBottom: 6, color: red }}>
+            Current: {currentSpeed.toFixed(1)} kn @ {currentDir}°
           </div>
           <input type="range" min="0" max="3" step="0.1" value={currentSpeed}
             onChange={(e) => setCurrentSpeed(parseFloat(e.target.value))}
-            style={{ width: "100%", cursor: "pointer" }} />
-        </div>
-
-        <div>
-          <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, marginBottom: 6 }}>
-            <label style={{ fontWeight: 600 }}>Current Direction: {currentDir}°</label>
-          </div>
+            style={{ width: "100%", cursor: "pointer", accentColor: red }} />
           <input type="range" min="0" max="359" step="1" value={currentDir}
             onChange={(e) => setCurrentDir(parseInt(e.target.value))}
-            style={{ width: "100%", cursor: "pointer" }} />
+            style={{ width: "100%", cursor: "pointer", accentColor: red, marginTop: 4 }} />
         </div>
-
         <div>
-          <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, marginBottom: 6 }}>
-            <label style={{ fontWeight: 600 }}>Boat Speed: {boatSpeed.toFixed(1)} kn</label>
+          <div style={{ fontSize: 11, fontWeight: 600, marginBottom: 6, color: green }}>
+            Boat Speed: {boatSpeed.toFixed(1)} kn
           </div>
           <input type="range" min="1" max="8" step="0.1" value={boatSpeed}
             onChange={(e) => setBoatSpeed(parseFloat(e.target.value))}
-            style={{ width: "100%", cursor: "pointer" }} />
+            style={{ width: "100%", cursor: "pointer", accentColor: green }} />
         </div>
-      </div>
-
-      {/* Results display */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10 }}>
-        <div style={{ background: C.bgCard, padding: "12px", borderRadius: 8, border: `1px solid ${C.border}`, textAlign: "center" }}>
-          <div style={{ fontSize: 10, color: C.textMuted, textTransform: "uppercase", fontWeight: 600, marginBottom: 4 }}>CTS</div>
-          <div style={{ fontSize: 18, fontWeight: 700, color: "#16a34a" }}>{cts}°</div>
-        </div>
-        <div style={{ background: C.bgCard, padding: "12px", borderRadius: 8, border: `1px solid ${C.border}`, textAlign: "center" }}>
-          <div style={{ fontSize: 10, color: C.textMuted, textTransform: "uppercase", fontWeight: 600, marginBottom: 4 }}>CMG</div>
-          <div style={{ fontSize: 18, fontWeight: 700, color: C.accent }}>{cmg}°</div>
-        </div>
-        <div style={{ background: C.bgCard, padding: "12px", borderRadius: 8, border: `1px solid ${C.border}`, textAlign: "center" }}>
-          <div style={{ fontSize: 10, color: C.textMuted, textTransform: "uppercase", fontWeight: 600, marginBottom: 4 }}>SOG</div>
-          <div style={{ fontSize: 18, fontWeight: 700, color: C.red }}>{sog.toFixed(1)} kn</div>
+        <div style={{ display: "flex", flexDirection: "column", justifyContent: "center", gap: 4 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11 }}>
+            <span style={{ color: muted }}>CTS</span>
+            <span style={{ fontWeight: 700, color: green }}>{cts}°</span>
+          </div>
+          <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11 }}>
+            <span style={{ color: muted }}>CMG</span>
+            <span style={{ fontWeight: 700, color: blue }}>{cmg}°</span>
+          </div>
+          <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11 }}>
+            <span style={{ color: muted }}>SOG</span>
+            <span style={{ fontWeight: 700, color: txt }}>{sog.toFixed(1)} kn</span>
+          </div>
         </div>
       </div>
     </div>
