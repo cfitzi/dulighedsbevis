@@ -3979,7 +3979,7 @@ const TOPICS = [
     difficulty: "Hard",
     color: "#2563eb",
     studyContent: [
-      { heading: "The Compass Correction Chain", body: "The most-tested concept in the exam. To convert between compass and true bearings:\n\nCompass → (± Deviation) → Magnetic → (± Variation) → True\n\nMnemonic: Can Dead Men Vote Twice (CDMVT)\n\nGoing Compass → True: East corrections are ADDED (+), West corrections are SUBTRACTED (−).\nGoing True → Compass: the signs are REVERSED.\n\nExample:\nCompass course 220°, Deviation 3°E, Variation 2°W\n→ 220° + 3° = 223° Magnetic\n→ 223° − 2° = 221° True\n\nThe most common exam mistake is getting the sign wrong. Drill this until it is automatic.\n\nIMPORTANT: CDMVT is purely an instrument correction — it converts between compass north and true north. It does NOT account for current (set/drift) or leeway (wind). Those are course corrections that affect your track over the ground and are handled separately via the current triangle. The full planning chain is:\n\nCOG (desired track) → adjust for current → CTW → adjust for leeway → CTS (true heading) → apply variation → CM → apply deviation → CC (what you steer on the compass)\n\nSee 'Current & Leeway' below and the interactive Current Triangle calculator in the Tools tab." },
+      { heading: "The Compass Correction Chain", body: "The most-tested concept in the exam. To convert between compass and true bearings:\n\nCompass → (± Deviation) → Magnetic → (± Variation) → True\n\nMnemonic: Can Dead Men Vote Twice (CDMVT)\n\nGoing Compass → True: East corrections are ADDED (+), West corrections are SUBTRACTED (−).\nGoing True → Compass: the signs are REVERSED.\n\nExample:\nCompass course 220°, Deviation 3°E, Variation 2°W\n→ 220° + 3° = 223° Magnetic\n→ 223° − 2° = 221° True\n\nThe most common exam mistake is getting the sign wrong. Drill this until it is automatic.\n\n**IMPORTANT:** CDMVT is purely an instrument correction — it converts between compass north and true north. It does NOT account for current (set/drift) or leeway (wind). Those are course corrections that affect your track over the ground and are handled separately via the current triangle. The full planning chain is:\n\nCourse Over Ground (COG, desired track) → adjust for current → Course Through Water (CTW) → adjust for leeway → Course To Steer (CTS, true heading) → apply variation → Course Magnetic (CM) → apply deviation → Compass Course (CC, what you steer on the compass)\n\nSee 'Current & Leeway' below and the interactive Current Triangle calculator in the Tools tab." },
       { heading: "Deviation vs Variation", body: "Deviation is caused by magnetic interference aboard YOUR vessel — iron fittings, engine, electronics, speakers near the compass. It changes with each heading and is recorded on a deviation card (or table) specific to that vessel and compass.\n\nVariation (misvisning) is the angle between true north and magnetic north at a given LOCATION. It is printed on the chart's compass rose, along with the year and annual rate of change. You must update it to the current year.\n\nExample: Variation 3°00'W (2019), annual change 7'E. In 2025: 6 years × 7' = 42' East change. 3°00'W − 42' = 2°18'W." },
       { heading: "Chart Reading Essentials", body: "Kort 1 is the chart symbol reference — learn the most common symbols:\n\n• Depth figures (in metres on Danish charts)\n• Depth contours (lines connecting equal depths)\n• Lights: star symbol with characteristics (e.g., Fl(3)10s = 3 flashes every 10 seconds)\n• Wrecks, rocks, obstructions\n• Cables, pipelines (don't anchor here!)\n• Restricted/prohibited areas\n\nThe latitude scale (side margins) is your distance ruler: 1' of latitude = 1 nautical mile. Always measure at the same latitude as your position." },
       { heading: "Position Fixing Methods", body: "Cross bearing (krydspejling): Take compass bearings to 2-3 charted objects. Convert each to true. Plot on the chart. The intersection is your fix (⊙). Best when bearings cross at 60°-120° angles.\n\nRunning fix (overført pejling): Take a bearing to one object. Sail a known course and distance. Take a second bearing (same or different object). Transfer the first bearing line forward along your course and distance sailed. Where it intersects the second bearing = fix.\n\nEstimated Position (EP, symbol △): Based on your last fix plus dead reckoning (course and speed) plus estimated effects of current and leeway. Less accurate than a fix.\n\nDead Reckoning (DR): Position based solely on course steered and distance logged from a known position. No current or leeway correction applied." },
@@ -4654,11 +4654,20 @@ function StudyView({ topic, mastery, onBack, onQuiz }) {
           </button>
           {open === i && (
             <div style={{ padding: "0 20px 18px", color: C.textSec, fontSize: 13.5, lineHeight: 1.75 }}>
-              {s.body.split("\n").map((line, j) => (
-                <p key={j} style={{ margin: line.trim() === "" ? "10px 0" : "3px 0", fontWeight: line.startsWith("•") || line.startsWith("→") ? 500 : 400, color: line.startsWith("•") || line.startsWith("→") || line.match(/^[A-Z]/) ? C.text : undefined }}>
-                  {line}
-                </p>
-              ))}
+              {s.body.split("\n").map((line, j) => {
+                // Parse **bold** markdown in lines
+                const parts = line.split(/(\*\*[^*]+\*\*)/g);
+                const rendered = parts.map((part, k) =>
+                  part.startsWith("**") && part.endsWith("**")
+                    ? <strong key={k} style={{ fontWeight: 700, color: C.text }}>{part.slice(2, -2)}</strong>
+                    : part
+                );
+                return (
+                  <p key={j} style={{ margin: line.trim() === "" ? "10px 0" : "3px 0", fontWeight: line.startsWith("•") || line.startsWith("→") ? 500 : 400, color: line.startsWith("•") || line.startsWith("→") || line.match(/^[A-Z]/) ? C.text : undefined }}>
+                    {rendered}
+                  </p>
+                );
+              })}
             </div>
           )}
         </div>
