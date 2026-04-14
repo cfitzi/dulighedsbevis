@@ -85,7 +85,7 @@ function CompassRose({ size = 240 }) {
   );
 }
 
-function CardinalMarkSVG({ direction, size = 80 }) {
+function CardinalMarkSVG({ direction, size = 80, showLabel = true }) {
   const w = size, h = size * 1.4;
   const cx = w / 2;
   const triH = 10, triW = 9, gap = 2;
@@ -139,9 +139,9 @@ function CardinalMarkSVG({ direction, size = 80 }) {
         })}
         {topmarks[direction]}
       </svg>
-      <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>{direction}</div>
-      <div style={{ fontSize: 10, color: C.textMuted }}>{mnemonics[direction]}</div>
-      <div style={{ fontSize: 10, color: C.accent }}>{lightInfo[direction]}</div>
+      {showLabel && <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>{direction}</div>}
+      {showLabel && <div style={{ fontSize: 10, color: C.textMuted }}>{mnemonics[direction]}</div>}
+      {showLabel && <div style={{ fontSize: 10, color: C.accent }}>{lightInfo[direction]}</div>}
     </div>
   );
 }
@@ -1259,7 +1259,7 @@ function VesselLightsExercise() {
 
 // ─── Additional Buoy SVG Components ─────────────────────────────────────────
 
-function IsolatedDangerSVG({ size = 80 }) {
+function IsolatedDangerSVG({ size = 80, showLabel = true }) {
   const w = size, h = size * 1.4, cx = w / 2;
   const bodyTop = 34, bodyH = 48, bodyW = 18;
   return (
@@ -1273,14 +1273,14 @@ function IsolatedDangerSVG({ size = 80 }) {
         <rect x={cx - bodyW / 2} y={bodyTop + bodyH * 0.33} width={bodyW} height={bodyH * 0.34} fill="#dc2626" stroke="#888" strokeWidth="0.5" />
         <rect x={cx - bodyW / 2} y={bodyTop + bodyH * 0.67} width={bodyW} height={bodyH * 0.33} fill="#111" stroke="#888" strokeWidth="0.5" />
       </svg>
-      <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>Isolated Danger</div>
-      <div style={{ fontSize: 10, color: C.textMuted }}>Two spheres</div>
-      <div style={{ fontSize: 10, color: C.accent }}>Fl(2)</div>
+      {showLabel && <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>Isolated Danger</div>}
+      {showLabel && <div style={{ fontSize: 10, color: C.textMuted }}>Two spheres</div>}
+      {showLabel && <div style={{ fontSize: 10, color: C.accent }}>Fl(2)</div>}
     </div>
   );
 }
 
-function SafeWaterSVG({ size = 80 }) {
+function SafeWaterSVG({ size = 80, showLabel = true }) {
   const w = size, h = size * 1.4, cx = w / 2;
   const bodyTop = 34, bodyH = 48, bodyW = 18;
   return (
@@ -1295,14 +1295,14 @@ function SafeWaterSVG({ size = 80 }) {
         ))}
         <rect x={cx - bodyW / 2} y={bodyTop} width={bodyW} height={bodyH} fill="none" stroke="#888" strokeWidth="0.5" />
       </svg>
-      <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>Safe Water</div>
-      <div style={{ fontSize: 10, color: C.textMuted }}>Red sphere</div>
-      <div style={{ fontSize: 10, color: C.accent }}>Iso / Oc / Morse A</div>
+      {showLabel && <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>Safe Water</div>}
+      {showLabel && <div style={{ fontSize: 10, color: C.textMuted }}>Red sphere</div>}
+      {showLabel && <div style={{ fontSize: 10, color: C.accent }}>Iso / Oc / Morse A</div>}
     </div>
   );
 }
 
-function SpecialMarkSVG({ size = 80 }) {
+function SpecialMarkSVG({ size = 80, showLabel = true }) {
   const w = size, h = size * 1.4, cx = w / 2;
   const bodyTop = 34, bodyH = 48, bodyW = 18;
   return (
@@ -1314,9 +1314,9 @@ function SpecialMarkSVG({ size = 80 }) {
         {/* Body: solid yellow */}
         <rect x={cx - bodyW / 2} y={bodyTop} width={bodyW} height={bodyH} fill="#eab308" stroke="#888" strokeWidth="0.5" />
       </svg>
-      <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>Special Mark</div>
-      <div style={{ fontSize: 10, color: C.textMuted }}>Yellow X</div>
-      <div style={{ fontSize: 10, color: C.accent }}>Yellow, any rhythm</div>
+      {showLabel && <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>Special Mark</div>}
+      {showLabel && <div style={{ fontSize: 10, color: C.textMuted }}>Yellow X</div>}
+      {showLabel && <div style={{ fontSize: 10, color: C.accent }}>Yellow, any rhythm</div>}
     </div>
   );
 }
@@ -1363,7 +1363,7 @@ const BUOY_DATA = [
 ];
 
 function BuoyMarkSVG({ buoy, size = 90, showInfo = false }) {
-  if (buoy.type === "cardinal") return <CardinalMarkSVG direction={buoy.direction} size={size} />;
+  if (buoy.type === "cardinal") return <CardinalMarkSVG direction={buoy.direction} size={size} showLabel={showInfo} />;
   if (buoy.type === "lateral" && buoy.side === "port") {
     const w = size, h = size * 1.4, cx = w / 2;
     const bodyTop = 34, bodyH = 48, bodyW = 18;
@@ -1392,9 +1392,9 @@ function BuoyMarkSVG({ buoy, size = 90, showInfo = false }) {
       </div>
     );
   }
-  if (buoy.id === "isolated") return <IsolatedDangerSVG size={size} />;
-  if (buoy.id === "safewater") return <SafeWaterSVG size={size} />;
-  if (buoy.id === "special") return <SpecialMarkSVG size={size} />;
+  if (buoy.id === "isolated") return <IsolatedDangerSVG size={size} showLabel={showInfo} />;
+  if (buoy.id === "safewater") return <SafeWaterSVG size={size} showLabel={showInfo} />;
+  if (buoy.id === "special") return <SpecialMarkSVG size={size} showLabel={showInfo} />;
   return null;
 }
 
