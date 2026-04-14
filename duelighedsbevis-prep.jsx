@@ -1963,7 +1963,86 @@ const BUOY_DATA = [
     description: "Modified starboard mark — green body with a broad red band. Treat as a starboard-hand mark (keep to your right). The preferred (main) channel is to port of this mark.",
     light: "Green Fl(2+1) — composite group flash", topmark: "Green cone",
     mnemonic: "Green on top → starboard mark. Red band = secondary channel also passable." },
+  { id: "wreck", name: "Emergency Wreck Marking Buoy", type: "wreck",
+    description: "Marks a newly discovered wreck that is not yet on charts. Blue and yellow vertical stripes. Placed close to the wreck until a permanent mark is established.",
+    light: "Alternating blue and yellow flashing (Bu/Y)", topmark: "Yellow standing cross (+)",
+    mnemonic: "Blue/yellow stripes + yellow cross = new wreck. Stay well clear!" },
+  { id: "racing", name: "Racing / Mooring Buoy", type: "racing",
+    description: "Yellow or orange buoy used as a racing mark or mooring buoy. No navigational significance — does NOT indicate channels or hazards. Often found near yacht clubs.",
+    light: "None (unlighted)", topmark: "None",
+    mnemonic: "Yellow/orange = racing or mooring, NOT a navigation aid." },
+  { id: "newdanger", name: "New Danger Mark", type: "newdanger",
+    description: "Marks a newly discovered hazard not yet shown on charts. Uses a standard IALA mark (cardinal or lateral) plus a Racon coded 'D' and/or an AIS transponder. May be duplicated until the danger is charted.",
+    light: "Quick or Very Quick flashing (as per the IALA mark used)", topmark: "As per the IALA mark type used",
+    mnemonic: "New danger = standard IALA mark + Racon 'D'. Often duplicated for safety." },
 ];
+
+function WreckMarkSVG({ size = 80, showLabel = true }) {
+  const w = size, h = size * 1.4, cx = w / 2;
+  const bodyTop = 34, bodyH = 48, bodyW = 18;
+  const stripeW = bodyW / 4;
+  const bx = cx - bodyW / 2;
+  return (
+    <div style={{ textAlign: "center", minWidth: 72 }}>
+      <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`}>
+        {/* Yellow standing cross topmark */}
+        <line x1={cx} y1={6} x2={cx} y2={24} stroke="#eab308" strokeWidth="3" />
+        <line x1={cx - 7} y1={15} x2={cx + 7} y2={15} stroke="#eab308" strokeWidth="3" />
+        {/* Body outline */}
+        <rect x={bx} y={bodyTop} width={bodyW} height={bodyH} rx={3} fill="#2563eb" stroke="#888" strokeWidth="0.5" />
+        {/* Yellow vertical stripes (2nd and 4th quarter) */}
+        <rect x={bx + stripeW} y={bodyTop + 1} width={stripeW} height={bodyH - 2} fill="#eab308" />
+        <rect x={bx + stripeW * 3} y={bodyTop + 1} width={stripeW} height={bodyH - 2} fill="#eab308" />
+      </svg>
+      {showLabel && <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>Wreck Mark</div>}
+      {showLabel && <div style={{ fontSize: 10, color: C.textMuted }}>Blue/yellow stripes</div>}
+      {showLabel && <div style={{ fontSize: 10, color: C.accent }}>Alt. Bu/Y flash</div>}
+    </div>
+  );
+}
+
+function RacingMooringBuoySVG({ size = 80, showLabel = true }) {
+  const w = size, h = size * 1.4, cx = w / 2;
+  const bodyTop = 30, r = 18;
+  return (
+    <div style={{ textAlign: "center", minWidth: 72 }}>
+      <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`}>
+        {/* Spherical yellow/orange buoy */}
+        <circle cx={cx} cy={bodyTop + r} r={r} fill="#f59e0b" stroke="#888" strokeWidth="0.5" />
+        {/* Mooring ring at top */}
+        <circle cx={cx} cy={bodyTop + 2} r={3} fill="none" stroke="#888" strokeWidth="1.5" />
+        {/* Thin stick below */}
+        <line x1={cx} y1={bodyTop + r * 2} x2={cx} y2={bodyTop + r * 2 + 20} stroke="#888" strokeWidth="1.5" />
+      </svg>
+      {showLabel && <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>Racing / Mooring</div>}
+      {showLabel && <div style={{ fontSize: 10, color: C.textMuted }}>Yellow/orange</div>}
+      {showLabel && <div style={{ fontSize: 10, color: C.accent }}>No navigational significance</div>}
+    </div>
+  );
+}
+
+function NewDangerMarkSVG({ size = 80, showLabel = true }) {
+  const w = size, h = size * 1.4, cx = w / 2;
+  const bodyTop = 34, bodyH = 48, bodyW = 18;
+  return (
+    <div style={{ textAlign: "center", minWidth: 72 }}>
+      <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`}>
+        {/* Two black spheres (like isolated danger but with Racon 'D' label) */}
+        <circle cx={cx} cy={10} r={5} fill="#1a1a1a" />
+        <circle cx={cx} cy={22} r={5} fill="#1a1a1a" />
+        {/* Body: black with red bands (like isolated danger, doubled) */}
+        <rect x={cx - bodyW / 2} y={bodyTop} width={bodyW} height={bodyH} rx={3} fill="#1a1a1a" stroke="#888" strokeWidth="0.5" />
+        <rect x={cx - bodyW / 2 + 0.5} y={bodyTop + bodyH * 0.25} width={bodyW - 1} height={bodyH * 0.15} fill="#dc2626" />
+        <rect x={cx - bodyW / 2 + 0.5} y={bodyTop + bodyH * 0.55} width={bodyW - 1} height={bodyH * 0.15} fill="#dc2626" />
+        {/* Racon 'D' indicator */}
+        <text x={cx} y={bodyTop + bodyH + 14} textAnchor="middle" fontSize="10" fontWeight="700" fill="#ca8a04">Racon D</text>
+      </svg>
+      {showLabel && <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>New Danger</div>}
+      {showLabel && <div style={{ fontSize: 10, color: C.textMuted }}>Standard IALA + Racon D</div>}
+      {showLabel && <div style={{ fontSize: 10, color: C.accent }}>May be duplicated</div>}
+    </div>
+  );
+}
 
 function BuoyMarkSVG({ buoy, size = 90, showInfo = false }) {
   if (buoy.type === "cardinal") return <CardinalMarkSVG direction={buoy.direction} size={size} showLabel={showInfo} />;
@@ -2037,6 +2116,9 @@ function BuoyMarkSVG({ buoy, size = 90, showInfo = false }) {
   if (buoy.id === "isolated") return <IsolatedDangerSVG size={size} showLabel={showInfo} />;
   if (buoy.id === "safewater") return <SafeWaterSVG size={size} showLabel={showInfo} />;
   if (buoy.id === "special") return <SpecialMarkSVG size={size} showLabel={showInfo} />;
+  if (buoy.id === "wreck") return <WreckMarkSVG size={size} showLabel={showInfo} />;
+  if (buoy.id === "racing") return <RacingMooringBuoySVG size={size} showLabel={showInfo} />;
+  if (buoy.id === "newdanger") return <NewDangerMarkSVG size={size} showLabel={showInfo} />;
   return null;
 }
 
@@ -3012,6 +3094,9 @@ const QUESTIONS = [
   { topic: 2, q: "A preferred channel buoy has red and green horizontal bands with red on top. What does this mean?", options: ["The preferred channel is to port — treat it as a port-hand mark", "The preferred channel is to starboard", "Danger on both sides", "Safe water all around"], answer: 0, explanation: "The top colour tells you how to treat it. Red on top = treat as port mark. The preferred (main) channel goes to port of the buoy." },
   { topic: 2, q: "You see a buoy with two black cones point-to-point (▼▲) and yellow-black-yellow horizontal bands. What is it?", options: ["A West cardinal mark — pass to the west", "An East cardinal mark", "A North cardinal mark", "An isolated danger mark"], answer: 0, explanation: "Point-to-point cones (wine glass) = West cardinal. The body is yellow-black-yellow (black band in the middle). Pass to the west." },
   { topic: 2, q: "At night you see a light flashing in groups of 3. What cardinal mark is this?", options: ["East cardinal — Q(3) or VQ(3)", "West cardinal", "South cardinal", "North cardinal"], answer: 0, explanation: "Clockface: 3 flashes = East (3 o'clock). North = continuous, East = 3, South = 6+1 long, West = 9." },
+  { topic: 2, q: "What does an emergency wreck marking buoy look like?", options: ["Blue and yellow vertical stripes with a yellow standing cross topmark", "Red and white vertical stripes with a red sphere topmark", "Black body with red bands and two black spheres", "Yellow body with yellow X topmark"], answer: 0, explanation: "Emergency wreck marking buoys have blue/yellow vertical stripes and a yellow cross (+) topmark. Light: alternating blue/yellow. They mark newly discovered wrecks not yet on charts." },
+  { topic: 2, q: "What distinguishes a new danger mark from other IALA marks?", options: ["It carries a Racon coded 'D' and/or an AIS transponder", "It is always painted red and white", "It has a unique blue/yellow pattern", "It uses a flashing orange light"], answer: 0, explanation: "A new danger mark uses a standard IALA mark (cardinal or lateral) plus a Racon coded 'D' and/or AIS transponder. It may be duplicated until the danger is charted." },
+  { topic: 2, q: "You see a yellow/orange spherical buoy near a yacht club. What is it?", options: ["A racing or mooring buoy — no navigational significance", "A special mark indicating a cable zone", "A safe water mark — navigable water all around", "A new danger mark — uncharted hazard"], answer: 0, explanation: "Yellow/orange spherical buoys without topmarks or lights are racing marks or mooring buoys. They have NO navigational significance and do not mark channels or hazards." },
   { topic: 2, q: "What does a North cardinal mark's body colouring look like?", options: ["Black on top, yellow on bottom", "Yellow on top, black on bottom", "Black-yellow-black horizontal bands", "Yellow-black-yellow horizontal bands"], answer: 0, explanation: "North cardinal: black on top (like the cones pointing up), yellow below. The black section matches where the cone points go." },
   { topic: 2, q: "When entering a harbour from the sea, which side should port marks be on?", options: ["On your left (port) side", "On your right (starboard) side", "Directly ahead as mid-channel markers", "Either side"], answer: 0, explanation: "Coming from sea = conventional direction of buoyage. Port marks (red) go on your port (left) side." },
 
@@ -3089,6 +3174,9 @@ const QUESTIONS = [
   { topic: 2, q: "What does this navigation mark indicate?", visual: { type: "buoy", id: "isolated" }, options: ["Isolated danger — small hazard with navigable water around it", "Safe water — navigable water all around", "Special mark — pipeline or cable crossing", "South cardinal — pass to the south"], answer: 0, explanation: "Black body with red band(s) and two black sphere topmarks = isolated danger mark. It sits on or near a small isolated danger. Light: Fl(2) — group of two flashes." },
   { topic: 2, q: "You see this mark. What is it?", visual: { type: "buoy", id: "safewater" }, options: ["Safe water mark — navigable water all around", "Isolated danger mark — hazard nearby", "Port lateral mark — keep to port side", "Special mark — restricted zone ahead"], answer: 0, explanation: "Red and white vertical stripes with a single red sphere topmark = safe water mark. Used as mid-channel or landfall marks. Light: Isophase, Occulting, or Morse 'A'." },
   { topic: 2, q: "Identify this navigation mark:", visual: { type: "buoy", id: "special" }, options: ["Special mark — marks cables, pipelines, or restricted areas", "Starboard lateral mark — green cone shape", "Safe water mark — navigable water around", "Isolated danger mark — small hazard here"], answer: 0, explanation: "All-yellow body with a yellow X topmark = special mark. Used for military exercise zones, cables, pipelines, recreational areas, etc. Light: yellow, any rhythm." },
+  { topic: 2, q: "You spot this distinctive buoy. What is it?", visual: { type: "buoy", id: "wreck" }, options: ["Emergency wreck marking buoy — new wreck not yet on charts", "Special mark — marks a restricted area", "Safe water mark — navigable water all around", "North cardinal mark — pass to the north"], answer: 0, explanation: "Blue and yellow vertical stripes with a yellow standing cross topmark = emergency wreck marking buoy. Marks a newly discovered wreck. Stay well clear! Light: alternating blue/yellow." },
+  { topic: 2, q: "What type of buoy is this?", visual: { type: "buoy", id: "racing" }, options: ["Racing / mooring buoy — no navigational significance", "Special mark — marks a pipeline or cable zone", "Safe water mark — navigable water all around", "Port lateral mark — keep to port side"], answer: 0, explanation: "Yellow/orange spherical buoy without topmarks or navigational lights = racing or mooring buoy. Used for yacht races or mooring. Has NO navigational significance." },
+  { topic: 2, q: "This mark has been placed with a Racon 'D'. What is it?", visual: { type: "buoy", id: "newdanger" }, options: ["New danger mark — newly discovered hazard, not yet charted", "Isolated danger mark — small hazard with safe water around", "South cardinal mark — pass to the south", "Emergency wreck marking buoy — new wreck"], answer: 0, explanation: "A new danger mark uses a standard IALA mark plus a Racon coded 'D' and/or AIS transponder. It marks a newly discovered hazard not yet shown on charts and may be duplicated." },
 ];
 
 // ─── Topic Definitions ───────────────────────────────────────────────────────
@@ -3131,7 +3219,7 @@ const TOPICS = [
   {
     id: 2,
     title: "Buoyage & Marks",
-    subtitle: "IALA Region A: lateral, cardinal, special marks",
+    subtitle: "IALA Region A: lateral, cardinal, special, wreck & emergency marks",
     icon: "🔴",
     weight: 4,
     difficulty: "Medium",
@@ -3140,7 +3228,9 @@ const TOPICS = [
       { heading: "IALA Region A Overview", body: "Denmark uses IALA Region A. The key rule:\n\nWhen entering from sea (conventional direction of buoyage):\n• RED marks are on your PORT (left) side\n• GREEN marks are on your STARBOARD (right) side\n\nMnemonics:\n• 'Port wine is red'\n• 'Port' and 'left' both have 4 letters\n• 'Is there any red port left?' (Red, Port, Left)\n\nThis is the opposite of IALA Region B (Americas), so be careful if you've learned the US system." },
       { heading: "Lateral Marks", body: "Port-hand marks (left when entering from sea):\n• Colour: Red\n• Shape: Can (cylindrical) or pillar/spar\n• Topmark (if any): Red cylinder/can\n• Light (if any): Red, any rhythm\n\nStarboard-hand marks (right when entering from sea):\n• Colour: Green\n• Shape: Conical (pointed top) or pillar/spar\n• Topmark (if any): Green cone pointing up\n• Light (if any): Green, any rhythm\n\nPreferred channel marks: Horizontal bands. The top-band colour tells you which system it belongs to. Red on top = preferred channel to port (treat as port mark)." },
       { heading: "Cardinal Marks — The Key System", body: "Cardinal marks show where safe water lies relative to the mark using compass directions.\n\nNorth cardinal: safe water is NORTH — pass north of the mark\nEast cardinal: safe water is EAST — pass east\nSouth cardinal: safe water is SOUTH — pass south\nWest cardinal: safe water is WEST — pass west\n\nBody colours (horizontal bands of black and yellow):\n• N: Black on top, yellow below\n• S: Yellow on top, black below\n• E: Black-yellow-black (black at top and bottom)\n• W: Yellow-black-yellow (yellow at top and bottom)\n\nTopmarks (two black cones):\n• N: Both pointing UP ▲▲ (points go 'north')\n• S: Both pointing DOWN ▼▼ (points go 'south')\n• E: Base-to-base ▲▼ (like an EGG)\n• W: Point-to-point ▼▲ (like a WINE GLASS)\n\nLight characters (clockface mnemonic — 12, 3, 6, 9):\n• N = 12 o'clock: Continuous Quick (Q) or Very Quick (VQ)\n• E = 3 o'clock: Q(3) or VQ(3) — three flashes\n• S = 6 o'clock: Q(6)+LFl or VQ(6)+LFl — six flashes + one long\n• W = 9 o'clock: Q(9) or VQ(9) — nine flashes\n\nAll cardinal lights are white." },
-      { heading: "Other Marks", body: "Isolated danger mark:\n• Body: Black with red horizontal band(s)\n• Topmark: Two black spheres vertically\n• Light: White Fl(2) — group of two flashes\n• Meaning: Marks a small, isolated danger with navigable water all around\n\nSafe water mark:\n• Body: Red and white vertical stripes\n• Shape: Spherical, or pillar/spar\n• Topmark: Single red sphere\n• Light: White — Isophase, Occulting, LFl every 10s, or Morse 'A'\n• Meaning: Navigable water all around — used as mid-channel or landfall marks\n\nSpecial mark:\n• Body: Yellow\n• Topmark: Yellow X\n• Light: Yellow, any rhythm\n• Meaning: Marks special areas — pipelines, cables, military zones, recreational areas, etc.\n\nNew danger mark:\n• A newly discovered hazard not yet on charts\n• May be marked by a cardinal or lateral mark\n• Often has a Racon (radar beacon) coded 'D' and/or AIS transponder" },
+      { heading: "Isolated Danger, Safe Water & Special Marks", body: "Isolated danger mark:\n• Body: Black with red horizontal band(s)\n• Topmark: Two black spheres vertically\n• Light: White Fl(2) — group of two flashes\n• Meaning: Marks a small, isolated danger with navigable water all around\n\nSafe water mark:\n• Body: Red and white vertical stripes\n• Shape: Spherical, or pillar/spar\n• Topmark: Single red sphere\n• Light: White — Isophase, Occulting, LFl every 10s, or Morse 'A'\n• Meaning: Navigable water all around — used as mid-channel or landfall marks\n\nSpecial mark:\n• Body: Yellow\n• Topmark: Yellow X\n• Light: Yellow, any rhythm\n• Meaning: Marks special areas — pipelines, cables, military zones, recreational areas, etc." },
+      { heading: "Emergency Wreck Mark & New Danger", body: "Emergency wreck marking buoy (Vragafmærkning):\n• Body: Blue and yellow vertical stripes\n• Topmark: Yellow standing cross (+)\n• Light: Alternating blue and yellow flashing (Bu/Y)\n• Meaning: Marks a newly discovered wreck not yet on charts. Placed close to the wreck until permanent marks are established.\n• Stay well clear — the wreck position may not be precisely known.\n\nNew danger mark:\n• A newly discovered hazard not yet shown on charts\n• Marked with a standard IALA mark (cardinal or lateral) appropriate to the danger\n• Additionally carries a Racon coded 'D' (radar beacon) and/or an AIS transponder\n• May be duplicated until the danger is charted and well-established\n• The duplication distinguishes a new danger from ordinary IALA marks" },
+      { heading: "Racing Marks, Mooring Buoys & Beacons", body: "Racing / mooring buoy (Kapsejlads- og fortøjningstønde):\n• Body: Yellow or orange, often spherical\n• No topmark, no navigational light\n• Meaning: Used as sailing race marks or mooring buoys near yacht clubs. NO navigational significance — they do NOT mark channels or hazards.\n\nBeacons (Båker):\nIn Danish waters you will encounter fixed marks on poles or structures:\n• Sejladsbåker: Navigation beacons marking routes and channels\n• Kabelbåker: Cable crossing markers — do not anchor!\n• Skydeområder / forbudsområder: Military exercise zones and prohibited areas\n• Fredningsområder: Nature conservation areas\n• Rørledning: Pipeline markers\n• Gravlinjer: Survey line markers\n\nBeacons use colour, shape, and topmarks similar to floating buoys but are fixed structures, often on poles driven into the seabed or mounted on shore." },
     ]
   },
   {
@@ -3231,6 +3321,12 @@ const DANISH_TERMS = {
     { da: "lateralmærke", en: "lateral mark", desc: "Buoy marking port or starboard side of channel" },
     { da: "kardinalmærke", en: "cardinal mark", desc: "Buoy indicating safe water direction relative to the mark" },
     { da: "anduvningsmærke", en: "safe water mark", desc: "Mark indicating navigable water all around" },
+    { da: "vragafmærkning", en: "wreck marking", desc: "Emergency buoy marking a newly discovered wreck" },
+    { da: "kapsejladstønde", en: "racing buoy", desc: "Yellow/orange buoy used as racing mark, no nav significance" },
+    { da: "fortøjningstønde", en: "mooring buoy", desc: "Buoy for temporary mooring, no nav significance" },
+    { da: "båke", en: "beacon", desc: "Fixed mark on a pole or structure" },
+    { da: "kabelbåke", en: "cable beacon", desc: "Marks underwater cable crossing — do not anchor" },
+    { da: "sejladsbåke", en: "navigation beacon", desc: "Fixed mark for route or channel guidance" },
   ],
   3: [ // Safety
     { da: "redningsvest", en: "life jacket", desc: "Personal flotation device" },
