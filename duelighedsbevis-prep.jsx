@@ -571,16 +571,73 @@ function InteractiveCurrentTriangle() {
           </div>
         </div>
 
-        {/* Mnemonic */}
-        <div style={{ marginTop: 14, padding: "10px 14px", background: "#f8f7f4", borderRadius: 8, border: `1px solid ${bdr}` }}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: purp, marginBottom: 4 }}>Mnemonic: TVMDC (True → Compass) & CDMVT (Compass → True)</div>
-          <div style={{ fontSize: 12, color: "#374151", lineHeight: 1.5 }}>
-            <strong>True → Compass</strong> (planning a course): start with your chart bearing (True/COG), subtract variation to get Magnetic, subtract deviation to get Compass.
-            Remember: <em>"Error West, Compass Best"</em> — for westerly errors the compass reads higher than true.
-            <em>"Error East, Compass Least"</em> — for easterly errors the compass reads lower.
+        {/* When to use each direction — with scenarios */}
+        <div style={{ marginTop: 16, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+
+          {/* Scenario 1: Planning — COG → CC */}
+          <div style={{ padding: "14px 16px", background: blue + "06", borderRadius: 10, border: `1.5px solid ${blue}20` }}>
+            <div style={{ fontSize: 12, fontWeight: 800, color: blue, marginBottom: 2 }}>Planning a course: COG → CC</div>
+            <div style={{ fontSize: 10, color: purp, fontWeight: 700, marginBottom: 8, letterSpacing: "0.02em" }}>
+              COG → CTW → CTS → CM → CC &nbsp;(TVMDC direction)
+            </div>
+
+            <div style={{ fontSize: 11, fontStyle: "italic", color: muted, marginBottom: 8, lineHeight: 1.5, borderLeft: `3px solid ${blue}30`, paddingLeft: 10 }}>
+              You are at Gilleleje and want to sail to Kullen lighthouse in Sweden. On the chart you draw a line from Gilleleje to Kullen and measure the bearing with your plotter: <strong>COG 048°</strong>.
+            </div>
+
+            <div style={{ fontSize: 12, color: "#374151", lineHeight: 1.6 }}>
+              <strong>1. Current correction.</strong> The tidal atlas shows a 1.5 kn current setting 160°. Using the current triangle you find that to make good your COG 048°, your water track must be <strong>CTW 042°</strong>.
+            </div>
+            <div style={{ fontSize: 12, color: "#374151", lineHeight: 1.6, marginTop: 4 }}>
+              <strong>2. Leeway.</strong> There is a westerly wind and you estimate 6° leeway. Wind from port pushes you to starboard, so you steer further to port: <strong>CTS 036°</strong>. This is your true heading.
+            </div>
+            <div style={{ fontSize: 12, color: "#374151", lineHeight: 1.6, marginTop: 4 }}>
+              <strong>3. Variation.</strong> The chart's compass rose says variation is 4°E (2026). East means magnetic north is east of true north. True → Magnetic: subtract easterly variation: <strong>CM 032°</strong>.
+            </div>
+            <div style={{ fontSize: 12, color: "#374151", lineHeight: 1.6, marginTop: 4 }}>
+              <strong>4. Deviation.</strong> Your boat's deviation card shows 2°W on this heading. West deviation: add it going True→Compass: <strong>CC 034°</strong>. You tell the helmsman: <em>"steer 034 on the compass."</em>
+            </div>
           </div>
-          <div style={{ fontSize: 12, color: "#374151", lineHeight: 1.5, marginTop: 6 }}>
-            <strong>Compass → True</strong> (finding your position): start with your compass reading, add deviation to get Magnetic, add variation to get True. This is the CDMVT direction — <em>"Cadbury's Dairy Milk Very Tasty"</em> or <em>"Can Dead Men Vote Twice?"</em>
+
+          {/* Scenario 2: Position fix — CC → COG */}
+          <div style={{ padding: "14px 16px", background: red + "06", borderRadius: 10, border: `1.5px solid ${red}20` }}>
+            <div style={{ fontSize: 12, fontWeight: 800, color: red, marginBottom: 2 }}>Finding your position: CC → COG</div>
+            <div style={{ fontSize: 10, color: purp, fontWeight: 700, marginBottom: 8, letterSpacing: "0.02em" }}>
+              CC → CM → CTS → CTW → COG &nbsp;(CDMVT direction)
+            </div>
+
+            <div style={{ fontSize: 11, fontStyle: "italic", color: muted, marginBottom: 8, lineHeight: 1.5, borderLeft: `3px solid ${red}30`, paddingLeft: 10 }}>
+              You are sailing in the Kattegat and take a compass bearing to Anholt lighthouse: your compass reads <strong>CC 142°</strong>. To plot this bearing on the chart, you need to convert it to a true bearing.
+            </div>
+
+            <div style={{ fontSize: 12, color: "#374151", lineHeight: 1.6 }}>
+              <strong>1. Deviation.</strong> Your deviation card for heading 142° shows 3°W. Going Compass → Magnetic: subtract westerly deviation (or: add the signed value). Deviation West is negative, so: <strong>CM 139°</strong>.
+            </div>
+            <div style={{ fontSize: 12, color: "#374151", lineHeight: 1.6, marginTop: 4 }}>
+              <strong>2. Variation.</strong> Chart says 4°E. Compass → True: add easterly variation: <strong>CTS 143°</strong>. This is the true bearing to the lighthouse — you can now plot it on the chart as a position line.
+            </div>
+            <div style={{ fontSize: 12, color: "#374151", lineHeight: 1.6, marginTop: 4 }}>
+              <strong>3. Leeway & current</strong> apply if you are converting a <em>course steered</em> into a ground track (e.g. for a dead reckoning plot). Add leeway to CTS to get CTW, then apply the current triangle in reverse to find COG — the actual ground track to plot on the chart.
+            </div>
+          </div>
+        </div>
+
+        {/* Sign rule summary */}
+        <div style={{ marginTop: 14, padding: "12px 16px", background: "#f8f7f4", borderRadius: 8, border: `1px solid ${bdr}` }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: purp, marginBottom: 6 }}>Sign rules — how to remember which way to correct</div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, fontSize: 12, color: "#374151", lineHeight: 1.55 }}>
+            <div>
+              <strong style={{ color: blue }}>True → Compass (TVMDC)</strong><br />
+              Easterly error → <em>subtract</em> (compass reads less than true)<br />
+              Westerly error → <em>add</em> (compass reads more than true)<br />
+              <span style={{ fontSize: 11, color: muted }}>Mnemonic: <em>"Error West, Compass Best"</em></span>
+            </div>
+            <div>
+              <strong style={{ color: red }}>Compass → True (CDMVT)</strong><br />
+              Easterly error → <em>add</em><br />
+              Westerly error → <em>subtract</em><br />
+              <span style={{ fontSize: 11, color: muted }}>Mnemonic: <em>"Can Dead Men Vote Twice?"</em> / <em>"Cadbury's Dairy Milk Very Tasty"</em></span>
+            </div>
           </div>
         </div>
       </div>
@@ -1898,6 +1955,14 @@ const BUOY_DATA = [
     description: "Marks special areas: pipelines, cables, military zones, recreational areas.",
     light: "Yellow, any rhythm", topmark: "Yellow X",
     mnemonic: "Yellow everything = special area" },
+  { id: "pref-starboard", name: "Preferred Channel to Starboard", type: "preferred", side: "starboard",
+    description: "Modified port mark — red body with a broad green band. Treat as a port-hand mark (keep to your left). The preferred (main) channel is to starboard of this mark.",
+    light: "Red Fl(2+1) — composite group flash", topmark: "Red cylinder/can",
+    mnemonic: "Red on top → port mark. Green band = secondary channel also passable." },
+  { id: "pref-port", name: "Preferred Channel to Port", type: "preferred", side: "port",
+    description: "Modified starboard mark — green body with a broad red band. Treat as a starboard-hand mark (keep to your right). The preferred (main) channel is to port of this mark.",
+    light: "Green Fl(2+1) — composite group flash", topmark: "Green cone",
+    mnemonic: "Green on top → starboard mark. Red band = secondary channel also passable." },
 ];
 
 function BuoyMarkSVG({ buoy, size = 90, showInfo = false }) {
@@ -1930,6 +1995,45 @@ function BuoyMarkSVG({ buoy, size = 90, showInfo = false }) {
       </div>
     );
   }
+  if (buoy.type === "preferred" && buoy.side === "starboard") {
+    /* Red body (can shape) with green horizontal band — modified port mark */
+    const w = size, h = size * 1.4, cx = w / 2;
+    const bodyTop = 34, bodyH = 48, bodyW = 18;
+    const bandY = bodyTop + bodyH * 0.38, bandH = bodyH * 0.24;
+    return (
+      <div style={{ textAlign: "center", minWidth: 72 }}>
+        <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`}>
+          <rect x={cx - 6} y={14} width={12} height={10} rx={2} fill="#dc2626" />
+          <rect x={cx - bodyW / 2} y={bodyTop} width={bodyW} height={bodyH} rx={3} fill="#dc2626" stroke="#888" strokeWidth="0.5" />
+          <rect x={cx - bodyW / 2 + 0.5} y={bandY} width={bodyW - 1} height={bandH} fill="#16a34a" />
+        </svg>
+        {showInfo && <div style={{ fontSize: 12, fontWeight: 700, color: C.text }}>Pref. Ch. Stbd</div>}
+        {showInfo && <div style={{ fontSize: 10, color: C.textMuted }}>Red + green band</div>}
+      </div>
+    );
+  }
+  if (buoy.type === "preferred" && buoy.side === "port") {
+    /* Green body (cone shape) with red horizontal band — modified starboard mark */
+    const w = size, h = size * 1.4, cx = w / 2;
+    const bodyTop = 34, bodyH = 48;
+    const bT = bodyTop + bodyH * 0.35, bB = bodyTop + bodyH * 0.55;
+    const hwT = 9 * (bT - bodyTop) / bodyH, hwB = 9 * (bB - bodyTop) / bodyH;
+    return (
+      <div style={{ textAlign: "center", minWidth: 72 }}>
+        <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`}>
+          <polygon points={`${cx},10 ${cx - 5},22 ${cx + 5},22`} fill="#16a34a" />
+          {/* Top green section */}
+          <polygon points={`${cx},${bodyTop} ${cx - hwT},${bT} ${cx + hwT},${bT}`} fill="#16a34a" stroke="#888" strokeWidth="0.5" />
+          {/* Red band */}
+          <polygon points={`${cx - hwT},${bT} ${cx - hwB},${bB} ${cx + hwB},${bB} ${cx + hwT},${bT}`} fill="#dc2626" />
+          {/* Bottom green section */}
+          <polygon points={`${cx - hwB},${bB} ${cx - 9},${bodyTop + bodyH} ${cx + 9},${bodyTop + bodyH} ${cx + hwB},${bB}`} fill="#16a34a" stroke="#888" strokeWidth="0.5" />
+        </svg>
+        {showInfo && <div style={{ fontSize: 12, fontWeight: 700, color: C.text }}>Pref. Ch. Port</div>}
+        {showInfo && <div style={{ fontSize: 10, color: C.textMuted }}>Green + red band</div>}
+      </div>
+    );
+  }
   if (buoy.id === "isolated") return <IsolatedDangerSVG size={size} showLabel={showInfo} />;
   if (buoy.id === "safewater") return <SafeWaterSVG size={size} showLabel={showInfo} />;
   if (buoy.id === "special") return <SpecialMarkSVG size={size} showLabel={showInfo} />;
@@ -1939,70 +2043,127 @@ function BuoyMarkSVG({ buoy, size = 90, showInfo = false }) {
 // ─── Buoy Identification Exercise Component ─────────────────────────────────
 
 function BuoyIdentificationExercise() {
-  const [currentIndex, setCurrentIndex] = useState(0);
+  const totalMarks = BUOY_DATA.length;
+
+  // Shuffled queue of indices — each round covers every mark exactly once
+  const [queue, setQueue] = useState(() =>
+    [...Array(totalMarks).keys()].sort(() => Math.random() - 0.5)
+  );
+  const [qPos, setQPos] = useState(0);
   const [options, setOptions] = useState([]);
   const [selected, setSelected] = useState(null);
   const [showAnswer, setShowAnswer] = useState(false);
   const [score, setScore] = useState(0);
-  const [total, setTotal] = useState(0);
-  const [mode, setMode] = useState("visual"); // visual = show buoy guess name, name = show name guess buoy
+  const [answered, setAnswered] = useState(0);
+  const [mistakes, setMistakes] = useState([]); // track wrong answers for review
+  const [finished, setFinished] = useState(false);
+  const [mode, setMode] = useState("visual");
 
   function generateQuestion(idx) {
-    const correct = BUOY_DATA[idx % BUOY_DATA.length];
+    const correct = BUOY_DATA[idx];
     const others = BUOY_DATA.filter(b => b.id !== correct.id);
     const shuffledOthers = [...others].sort(() => Math.random() - 0.5).slice(0, 3);
-    const allOptions = [correct, ...shuffledOthers].sort(() => Math.random() - 0.5);
-    setOptions(allOptions);
+    setOptions([correct, ...shuffledOthers].sort(() => Math.random() - 0.5));
     setSelected(null);
     setShowAnswer(false);
   }
 
-  // Initialize on mount
-  useState(() => {
-    generateQuestion(Math.floor(Math.random() * BUOY_DATA.length));
-  });
+  // Init first question
+  useEffect(() => { generateQuestion(queue[0]); }, []);
 
-  // Also regenerate when options are empty (initial render)
-  if (options.length === 0) {
-    const idx = Math.floor(Math.random() * BUOY_DATA.length);
-    const correct = BUOY_DATA[idx];
-    const others = BUOY_DATA.filter(b => b.id !== correct.id);
-    const shuffledOthers = [...others].sort(() => Math.random() - 0.5).slice(0, 3);
-    const allOptions = [correct, ...shuffledOthers].sort(() => Math.random() - 0.5);
-    return (
-      <div style={{ background: "#fff", borderRadius: 12, padding: "24px", border: `1px solid ${C.border}` }}>
-        <div style={{ textAlign: "center", color: C.textMuted }}>Loading...</div>
-      </div>
-    );
-  }
-
-  const buoy = BUOY_DATA[currentIndex % BUOY_DATA.length];
+  const buoy = BUOY_DATA[queue[qPos]] || BUOY_DATA[0];
 
   function handleSelect(idx) {
     if (showAnswer) return;
     setSelected(idx);
     setShowAnswer(true);
-    setTotal(t => t + 1);
-    if (options[idx].id === buoy.id) setScore(s => s + 1);
+    setAnswered(a => a + 1);
+    const correct = options[idx].id === buoy.id;
+    if (correct) {
+      setScore(s => s + 1);
+    } else {
+      setMistakes(m => [...m, { buoy, chosen: options[idx] }]);
+    }
   }
 
   function handleNext() {
-    const nextIdx = Math.floor(Math.random() * BUOY_DATA.length);
-    setCurrentIndex(nextIdx);
-    generateQuestion(nextIdx);
+    const next = qPos + 1;
+    if (next >= totalMarks) {
+      setFinished(true);
+    } else {
+      setQPos(next);
+      generateQuestion(queue[next]);
+    }
   }
 
   function handleReset() {
+    const newQ = [...Array(totalMarks).keys()].sort(() => Math.random() - 0.5);
+    setQueue(newQ);
+    setQPos(0);
     setScore(0);
-    setTotal(0);
-    handleNext();
+    setAnswered(0);
+    setMistakes([]);
+    setFinished(false);
+    generateQuestion(newQ[0]);
   }
 
   const isCorrect = selected !== null && options[selected]?.id === buoy.id;
+  const pct = answered > 0 ? Math.round((score / answered) * 100) : 0;
+  const isLast = qPos === totalMarks - 1;
 
+  // ─── Completion Screen ───
+  if (finished) {
+    const finalPct = Math.round((score / totalMarks) * 100);
+    const perfect = score === totalMarks;
+    return (
+      <div style={{ background: "#fff", borderRadius: 12, padding: "28px", border: `1px solid ${C.border}` }}>
+        <div style={{ textAlign: "center", marginBottom: 20 }}>
+          <div style={{ fontSize: 36, marginBottom: 8 }}>{perfect ? "🎉" : finalPct >= 80 ? "👍" : "📚"}</div>
+          <h3 style={{ margin: "0 0 6px", fontSize: 20, fontWeight: 800 }}>
+            {perfect ? "Perfect score!" : finalPct >= 80 ? "Well done!" : "Keep practising!"}
+          </h3>
+          <div style={{ fontSize: 28, fontWeight: 800, color: finalPct >= 80 ? C.green : finalPct >= 60 ? C.gold : C.red }}>
+            {score}/{totalMarks} ({finalPct}%)
+          </div>
+          <div style={{ fontSize: 12, color: C.textMuted, marginTop: 4 }}>
+            All {totalMarks} marks tested
+          </div>
+        </div>
+
+        {/* Mistakes review */}
+        {mistakes.length > 0 && (
+          <div style={{ marginBottom: 20 }}>
+            <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 10, color: C.red }}>
+              Review your mistakes ({mistakes.length}):
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              {mistakes.map((m, i) => (
+                <div key={i} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 14px",
+                  background: C.redLight, borderRadius: 8, border: `1px solid ${C.red}22` }}>
+                  <BuoyMarkSVG buoy={m.buoy} size={60} showInfo={false} />
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>{m.buoy.name}</div>
+                    <div style={{ fontSize: 11, color: C.red }}>You answered: {m.chosen.name}</div>
+                    <div style={{ fontSize: 11, color: C.textSec, marginTop: 2 }}>{m.buoy.description}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <button onClick={handleReset} style={{
+          width: "100%", padding: "12px 20px", borderRadius: 8, border: "none",
+          background: C.accent, color: "#fff", fontSize: 14, fontWeight: 700, cursor: "pointer",
+        }}>Play Again (new shuffle)</button>
+      </div>
+    );
+  }
+
+  // ─── Quiz Screen ───
   return (
     <div style={{ background: "#fff", borderRadius: 12, padding: "24px", border: `1px solid ${C.border}` }}>
-      {/* Header with score and mode toggle */}
+      {/* Header */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
         <div>
           <h3 style={{ margin: "0 0 4px", fontSize: 16, fontWeight: 700 }}>Identify the Mark</h3>
@@ -2011,12 +2172,21 @@ function BuoyIdentificationExercise() {
           </p>
         </div>
         <div style={{ textAlign: "right" }}>
-          {total > 0 && (
-            <div style={{ fontSize: 14, fontWeight: 700, color: score / total >= 0.7 ? C.green : C.gold }}>
-              {score}/{total} ({Math.round((score / total) * 100)}%)
+          <div style={{ fontSize: 12, color: C.textMuted, marginBottom: 2 }}>
+            Question {qPos + 1} of {totalMarks}
+          </div>
+          {answered > 0 && (
+            <div style={{ fontSize: 14, fontWeight: 700, color: pct >= 70 ? C.green : C.gold }}>
+              {score}/{answered} ({pct}%)
             </div>
           )}
         </div>
+      </div>
+
+      {/* Progress bar */}
+      <div style={{ height: 4, background: C.border, borderRadius: 2, marginBottom: 16, overflow: "hidden" }}>
+        <div style={{ height: "100%", width: `${((qPos + (showAnswer ? 1 : 0)) / totalMarks) * 100}%`,
+          background: C.accent, borderRadius: 2, transition: "width 0.3s" }} />
       </div>
 
       {/* Mode toggle */}
@@ -2032,12 +2202,10 @@ function BuoyIdentificationExercise() {
       </div>
 
       {mode === "visual" ? (
-        /* Mode 1: Show buoy SVG, pick the name */
         <div>
           <div style={{ display: "flex", justifyContent: "center", marginBottom: 20, padding: "16px", background: "#fafaf8", borderRadius: 10 }}>
             <BuoyMarkSVG buoy={buoy} size={100} showInfo={false} />
           </div>
-
           <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 16 }}>
             {options.map((opt, i) => {
               const isSel = selected === i;
@@ -2062,13 +2230,11 @@ function BuoyIdentificationExercise() {
           </div>
         </div>
       ) : (
-        /* Mode 2: Show the name, pick the correct buoy SVG */
         <div>
           <div style={{ textAlign: "center", marginBottom: 20, padding: "16px 20px", background: "#fafaf8", borderRadius: 10 }}>
             <div style={{ fontSize: 18, fontWeight: 700, color: C.text }}>{buoy.name}</div>
             <div style={{ fontSize: 12, color: C.textMuted, marginTop: 4 }}>Which mark is this?</div>
           </div>
-
           <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 10, marginBottom: 16 }}>
             {options.map((opt, i) => {
               const isSel = selected === i;
@@ -2119,13 +2285,11 @@ function BuoyIdentificationExercise() {
           flex: 1, padding: "9px 16px", borderRadius: 8, border: "none",
           background: showAnswer ? C.accent : C.border, color: showAnswer ? "#fff" : C.textMuted,
           fontSize: 13, fontWeight: 600, cursor: showAnswer ? "pointer" : "not-allowed", transition: "all 0.15s",
-        }}>Next Question</button>
-        {total > 0 && (
-          <button onClick={handleReset} style={{
-            padding: "9px 16px", borderRadius: 8, border: `1px solid ${C.border}`, background: "#fff",
-            color: C.text, fontSize: 13, fontWeight: 600, cursor: "pointer",
-          }}>Reset</button>
-        )}
+        }}>{isLast ? "See Results" : `Next (${qPos + 2}/${totalMarks})`}</button>
+        <button onClick={handleReset} style={{
+          padding: "9px 16px", borderRadius: 8, border: `1px solid ${C.border}`, background: "#fff",
+          color: C.text, fontSize: 13, fontWeight: 600, cursor: "pointer",
+        }}>Restart</button>
       </div>
     </div>
   );
