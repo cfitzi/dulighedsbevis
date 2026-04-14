@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 
 // ─── Clean Off-White Palette ─────────────────────────────────────────────────
 const C = {
@@ -1121,7 +1121,7 @@ function VesselLightsExercise() {
   };
 
   // Initialize on mount
-  React.useEffect(() => {
+  useEffect(() => {
     generateQuestion(currentIndex);
   }, [round]);
 
