@@ -26,11 +26,13 @@ const C = {
 // ─── SVG Diagrams ────────────────────────────────────────────────────────────
 
 function CompassRose({ size = 240 }) {
-  const cx = size / 2, cy = size / 2, r = size * 0.34;
+  const pad = size * 0.18;
+  const full = size + pad * 2;
+  const cx = full / 2, cy = full / 2, r = size * 0.34;
   const dirs = ["N","NE","E","SE","S","SW","W","NW"];
   const degrees = [0, 45, 90, 135, 180, 225, 270, 315];
   return (
-    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+    <svg width={full} height={full} viewBox={`0 0 ${full} ${full}`}>
       <circle cx={cx} cy={cy} r={r + 12} fill="none" stroke={C.border} strokeWidth="1.5" />
       <circle cx={cx} cy={cy} r={r} fill="none" stroke="#94a3b8" strokeWidth="1" />
       {/* Degree ticks every 10° */}
@@ -53,8 +55,8 @@ function CompassRose({ size = 240 }) {
         const len = isCardinal ? r * 0.86 : r * 0.55;
         const x2 = cx + Math.cos(rad) * len;
         const y2 = cy + Math.sin(rad) * len;
-        const nameR = r + 24;
-        const degR = r + 38;
+        const nameR = r + 22;
+        const degR = r + 36;
         const nx = cx + Math.cos(rad) * nameR;
         const ny = cy + Math.sin(rad) * nameR;
         const dx = cx + Math.cos(rad) * degR;
@@ -66,7 +68,7 @@ function CompassRose({ size = 240 }) {
               strokeWidth={isCardinal ? 2 : 1} />
             <text x={nx} y={ny} textAnchor="middle" dominantBaseline="middle"
               fill={i === 0 ? C.red : isCardinal ? C.text : C.textMuted}
-              fontSize={isCardinal ? 14 : 10} fontWeight={isCardinal ? 700 : 400}
+              fontSize={isCardinal ? 13 : 10} fontWeight={isCardinal ? 700 : 400}
               fontFamily="system-ui, sans-serif">
               {dirs[i]}
             </text>
@@ -214,37 +216,52 @@ function LateralMarksSVG() {
 }
 
 function CurrentTriangleSVG() {
+  /* Points chosen so the three sides are clearly separated and labels don't overlap */
+  const A = { x: 40, y: 260 };           /* Start / DR */
+  const C1 = { x: 140, y: 200 };         /* End of current vector */
+  const B = { x: 340, y: 50 };           /* Destination */
+  /* Angle helpers for arrowheads */
+  const arrow = (fx, fy, tx, ty) => {
+    const a = Math.atan2(ty - fy, tx - fx);
+    const s = 10;
+    return `${tx},${ty} ${tx - s * Math.cos(a - 0.35)},${ty - s * Math.sin(a - 0.35)} ${tx - s * Math.cos(a + 0.35)},${ty - s * Math.sin(a + 0.35)}`;
+  };
   return (
     <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
-      <svg width={320} height={220} viewBox="0 0 320 220">
-        {/* Desired track A→B (blue) */}
-        <line x1={40} y1={190} x2={280} y2={40} stroke={C.accent} strokeWidth="2.5" />
-        <text x={108} y={128} fill={C.accent} fontSize={11} fontWeight="600" fontFamily="system-ui" transform="rotate(-32,108,128)">Desired track</text>
-        {/* Current vector from A (red dashed) */}
-        <line x1={40} y1={190} x2={110} y2={155} stroke={C.red} strokeWidth="2.5" strokeDasharray="6,4" />
-        {/* Arrowhead for current */}
-        <polygon points="110,155 100,160 104,150" fill={C.red} />
-        <text x={50} y={158} fill={C.red} fontSize={11} fontWeight="600" fontFamily="system-ui">Current</text>
-        <text x={50} y={170} fill={C.red} fontSize={9} fontFamily="system-ui">(set & drift)</text>
-        {/* CTS vector from end of current to B (green) */}
-        <line x1={110} y1={155} x2={280} y2={40} stroke="#16a34a" strokeWidth="2.5" />
-        {/* Arrowhead for CTS */}
-        <polygon points="280,40 268,48 272,38" fill="#16a34a" />
-        <text x={215} y={110} fill="#16a34a" fontSize={11} fontWeight="600" fontFamily="system-ui" transform="rotate(-34,215,110)">Course to steer</text>
-        <text x={215} y={124} fill="#16a34a" fontSize={9} fontFamily="system-ui" transform="rotate(-34,215,124)">(boat speed vector)</text>
+      <svg width={380} height={290} viewBox="0 0 380 290">
+        {/* Legend — top left */}
+        <line x1={16} y1={14} x2={36} y2={14} stroke={C.accent} strokeWidth="2.5" />
+        <text x={42} y={18} fill={C.textSec} fontSize={10} fontFamily="system-ui">Desired track (CMG)</text>
+        <line x1={16} y1={30} x2={36} y2={30} stroke={C.red} strokeWidth="2.5" strokeDasharray="5,3" />
+        <text x={42} y={34} fill={C.textSec} fontSize={10} fontFamily="system-ui">Current vector (set & drift)</text>
+        <line x1={16} y1={46} x2={36} y2={46} stroke="#16a34a" strokeWidth="2.5" />
+        <text x={42} y={50} fill={C.textSec} fontSize={10} fontFamily="system-ui">Course to steer (boat speed vector)</text>
+
+        {/* 1. Desired track A→B (blue) */}
+        <line x1={A.x} y1={A.y} x2={B.x} y2={B.y} stroke={C.accent} strokeWidth="2.5" />
+        <polygon points={arrow(A.x, A.y, B.x, B.y)} fill={C.accent} />
+
+        {/* 2. Current vector A→C (red dashed) */}
+        <line x1={A.x} y1={A.y} x2={C1.x} y2={C1.y} stroke={C.red} strokeWidth="2.5" strokeDasharray="6,4" />
+        <polygon points={arrow(A.x, A.y, C1.x, C1.y)} fill={C.red} />
+
+        {/* 3. Course to steer C→B (green) */}
+        <line x1={C1.x} y1={C1.y} x2={B.x} y2={B.y} stroke="#16a34a" strokeWidth="2.5" />
+        <polygon points={arrow(C1.x, C1.y, B.x, B.y)} fill="#16a34a" />
+
+        {/* Labels — offset away from lines so they don't overlap */}
+        <text x={150} y={175} fill={C.accent} fontSize={11} fontWeight="600" fontFamily="system-ui"
+          transform="rotate(-35,150,175)">Desired track</text>
+        <text x={72} y={246} fill={C.red} fontSize={11} fontWeight="600" fontFamily="system-ui">Current</text>
+        <text x={250} y={105} fill="#16a34a" fontSize={11} fontWeight="600" fontFamily="system-ui"
+          transform="rotate(-37,250,105)">Course to steer</text>
+
         {/* Points */}
-        <circle cx={40} cy={190} r={5} fill={C.text} />
-        <text x={24} y={208} fill={C.text} fontSize={12} fontWeight="700" fontFamily="system-ui">A</text>
-        <circle cx={280} cy={40} r={5} fill={C.text} />
-        <text x={288} y={38} fill={C.text} fontSize={12} fontWeight="700" fontFamily="system-ui">B</text>
-        <circle cx={110} cy={155} r={4} fill={C.red} stroke="#fff" strokeWidth="1.5" />
-        {/* Legend */}
-        <line x1={20} y1={10} x2={40} y2={10} stroke={C.accent} strokeWidth="2" />
-        <text x={44} y={14} fill={C.textSec} fontSize={9} fontFamily="system-ui">Desired track (CMG)</text>
-        <line x1={20} y1={24} x2={40} y2={24} stroke={C.red} strokeWidth="2" strokeDasharray="4,3" />
-        <text x={44} y={28} fill={C.textSec} fontSize={9} fontFamily="system-ui">Current vector</text>
-        <line x1={20} y1={38} x2={40} y2={38} stroke="#16a34a" strokeWidth="2" />
-        <text x={44} y={42} fill={C.textSec} fontSize={9} fontFamily="system-ui">Course to steer (CTS)</text>
+        <circle cx={A.x} cy={A.y} r={5} fill={C.text} />
+        <text x={22} y={280} fill={C.text} fontSize={13} fontWeight="700" fontFamily="system-ui">A</text>
+        <circle cx={B.x} cy={B.y} r={5} fill={C.text} />
+        <text x={348} y={48} fill={C.text} fontSize={13} fontWeight="700" fontFamily="system-ui">B</text>
+        <circle cx={C1.x} cy={C1.y} r={4} fill={C.red} stroke="#fff" strokeWidth="1.5" />
       </svg>
     </div>
   );
