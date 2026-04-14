@@ -524,6 +524,66 @@ function InteractiveCurrentTriangle() {
           ))}
         </div>
       </div>
+
+      {/* --- Explainer: what each course means --- */}
+      <div style={{ background: "#fff", borderRadius: 10, border: `1px solid ${bdr}`, padding: "18px 22px" }}>
+        <div style={{ fontSize: 13, fontWeight: 700, color: txt, marginBottom: 12 }}>Understanding the correction chain</div>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "14px 24px", fontSize: 12, lineHeight: 1.55, color: "#374151" }}>
+
+          <div>
+            <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
+              <span style={{ fontWeight: 800, color: blue, fontSize: 13 }}>COG</span>
+              <span style={{ color: muted, fontSize: 11 }}>Course Over Ground</span>
+            </div>
+            <div>The direction your boat actually travels across the seabed, as seen on the chart. This is the line you draw from A to B on your navigation chart. It accounts for all effects — current, leeway, everything. This is where you want to go.</div>
+          </div>
+
+          <div>
+            <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
+              <span style={{ fontWeight: 800, color: grn, fontSize: 13 }}>CTW</span>
+              <span style={{ color: muted, fontSize: 11 }}>Course Through Water</span>
+            </div>
+            <div>The direction your boat moves through the water itself — ignoring the water's own movement. The current (setting) pushes you sideways, so CTW differs from COG. Think of it as your track if you dropped dye in the water: it traces a straight line, but the sea floor below moves differently.</div>
+          </div>
+
+          <div>
+            <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
+              <span style={{ fontWeight: 800, color: gold, fontSize: 13 }}>CTS</span>
+              <span style={{ color: muted, fontSize: 11 }}>Course To Steer</span>
+            </div>
+            <div>The true heading your bow must point at. Wind pushes the boat sideways (leeway), so the bow must aim further into the wind than your actual water track. The angle between CTS and CTW is the leeway angle. This is the true bearing you would read on a perfect compass with no errors.</div>
+          </div>
+
+          <div>
+            <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
+              <span style={{ fontWeight: 800, color: gold, fontSize: 13 }}>CM</span>
+              <span style={{ color: muted, fontSize: 11 }}>Compass Magnetic</span>
+            </div>
+            <div>CTS corrected for magnetic variation — the angular difference between true north (chart north) and magnetic north (where the compass needle points). Variation depends on your geographic position and changes slowly over the years. It is printed on the chart's compass rose.</div>
+          </div>
+
+          <div style={{ gridColumn: "1 / -1" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
+              <span style={{ fontWeight: 800, color: red, fontSize: 13 }}>CC</span>
+              <span style={{ color: muted, fontSize: 11 }}>Compass Course</span>
+            </div>
+            <div>The number you actually read on your boat's compass. It includes deviation — the error caused by magnetic interference from your boat's own engine, electronics, and metal fittings. Deviation is unique to each vessel and heading, and is recorded on the boat's deviation card. This is the final number: steer your compass to CC and, if all corrections are right, you will track your desired COG across the ground.</div>
+          </div>
+        </div>
+
+        {/* Mnemonic */}
+        <div style={{ marginTop: 14, padding: "10px 14px", background: "#f8f7f4", borderRadius: 8, border: `1px solid ${bdr}` }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: purp, marginBottom: 4 }}>Mnemonic: TVMDC (True → Compass) & CDMVT (Compass → True)</div>
+          <div style={{ fontSize: 12, color: "#374151", lineHeight: 1.5 }}>
+            <strong>True → Compass</strong> (planning a course): start with your chart bearing (True/COG), subtract variation to get Magnetic, subtract deviation to get Compass.
+            Remember: <em>"Error West, Compass Best"</em> — for westerly errors the compass reads higher than true.
+            <em>"Error East, Compass Least"</em> — for easterly errors the compass reads lower.
+          </div>
+          <div style={{ fontSize: 12, color: "#374151", lineHeight: 1.5, marginTop: 6 }}>
+            <strong>Compass → True</strong> (finding your position): start with your compass reading, add deviation to get Magnetic, add variation to get True. This is the CDMVT direction — <em>"Cadbury's Dairy Milk Very Tasty"</em> or <em>"Can Dead Men Vote Twice?"</em>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
