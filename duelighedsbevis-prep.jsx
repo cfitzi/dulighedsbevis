@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useCallback, useRef } from "react";
 
 // ─── Clean Off-White Palette ─────────────────────────────────────────────────
 const C = {
@@ -215,7 +215,161 @@ function LateralMarksSVG() {
   );
 }
 
-function CurrentTriangleSVG() {
+function InteractiveCurrentTriangle() {
+  const [A, setA] = useState({ x: 80, y: 280 });
+  const [B, setB] = useState({ x: 350, y: 80 });
+  const [currentSpeed, setCurrentSpeed] = useState(1.5);
+  const [currentDir, setCurrentDir] = useState(45);
+  const [boatSpeed, setBoatSpeed] = useState(4);
+  const [dragging, setDragging] = useState(null);
+  const svgRef = useRef(null);
+
+  const scale = 30; // pixels per knot
+
+  // Calculate current vector endpoint C
+  const currentRad = (currentDir - 90) * Math.PI / 180;
+  const C = {
+    x: A.x + currentSpeed * scale * Math.cos(currentRad),
+    y: A.y + currentSpeed * scale * Math.sin(currentRad),
+  };
+
+  // Calculate course to steer (from C to B)
+  const boatVectorLength = boatSpeed * scale;
+  const desiredTrackDist = Math.sqrt((B.x - A.x) ** 2 + (B.y - A.y) ** 2);
+
+  // CMG: bearing from A to B
+  const cmgRad = Math.atan2(B.y - A.y, B.x - A.x);
+  const cmg = Math.round((cmgRad * 180 / Math.PI + 90 + 360) % 360);
+
+  // SOG: distance from A to B divided by time (if speed is boat speed * time)
+  const sog = Math.sqrt((B.x - C.x) ** 2 + (B.y - C.y) ** 2) / scale;
+
+  // CTS: bearing from C to B
+  const ctsRad = Math.atan2(B.y - C.y, B.x - C.x);
+  const cts = Math.round((ctsRad * 180 / Math.PI + 90 + 360) % 360);
+
+  const handleMouseDown = (e, point) => {
+    setDragging(point);
+  };
+
+  const handleMouseMove = (e) => {
+    if (!dragging || !svgRef.current) return;
+    const rect = svgRef.current.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+
+    if (dragging === 'A') setA({ x, y });
+    if (dragging === 'B') setB({ x, y });
+  };
+
+  const handleMouseUp = () => {
+    setDragging(null);
+  };
+
+  const arrow = (fx, fy, tx, ty) => {
+    const a = Math.atan2(ty - fy, tx - fx);
+    const s = 10;
+    return `${tx},${ty} ${tx - s * Math.cos(a - 0.35)},${ty - s * Math.sin(a - 0.35)} ${tx - s * Math.cos(a + 0.35)},${ty - s * Math.sin(a + 0.35)}`;
+  };
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+      <svg
+        ref={svgRef}
+        width={420}
+        height={350}
+        viewBox="0 0 420 350"
+        style={{ background: "#e6f2ff", borderRadius: 8, border: `1px solid ${C.border}`, cursor: dragging ? "grabbing" : "grab" }}
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUp}
+        onMouseLeave={handleMouseUp}
+      >
+        {/* Legend */}
+        <line x1={16} y1={14} x2={36} y2={14} stroke={C.accent} strokeWidth="2.5" />
+        <text x={42} y={18} fill={C.textSec} fontSize={10} fontFamily="system-ui">Desired track (CMG)</text>
+
+        <line x1={16} y1={30} x2={36} y2={30} stroke={C.red} strokeWidth="2.5" strokeDasharray="5,3" />
+        <text x={42} y={34} fill={C.textSec} fontSize={10} fontFamily="system-ui">Current vector</text>
+
+        <line x1={16} y1={46} x2={36} y2={46} stroke="#16a34a" strokeWidth="2.5" />
+        <text x={42} y={50} fill={C.textSec} fontSize={10} fontFamily="system-ui">Course to steer</text>
+
+        {/* Desired track A→B (blue) */}
+        <line x1={A.x} y1={A.y} x2={B.x} y2={B.y} stroke={C.accent} strokeWidth="2.5" />
+        <polygon points={arrow(A.x, A.y, B.x, B.y)} fill={C.accent} />
+
+        {/* Current vector A→C (red dashed) */}
+        <line x1={A.x} y1={A.y} x2={C.x} y2={C.y} stroke={C.red} strokeWidth="2.5" strokeDasharray="6,4" />
+        <polygon points={arrow(A.x, A.y, C.x, C.y)} fill={C.red} />
+
+        {/* Course to steer C→B (green) */}
+        <line x1={C.x} y1={C.y} x2={B.x} y2={B.y} stroke="#16a34a" strokeWidth="2.5" />
+        <polygon points={arrow(C.x, C.y, B.x, B.y)} fill="#16a34a" />
+
+        {/* Point A (draggable) */}
+        <circle cx={A.x} cy={A.y} r={6} fill={C.text} style={{ cursor: "grab" }}
+          onMouseDown={(e) => handleMouseDown(e, 'A')} />
+        <text x={A.x - 14} y={A.y + 16} fill={C.text} fontSize={13} fontWeight="700" fontFamily="system-ui">A</text>
+
+        {/* Point B (draggable) */}
+        <circle cx={B.x} cy={B.y} r={6} fill={C.text} style={{ cursor: "grab" }}
+          onMouseDown={(e) => handleMouseDown(e, 'B')} />
+        <text x={B.x + 8} y={B.y - 8} fill={C.text} fontSize={13} fontWeight="700" fontFamily="system-ui">B</text>
+
+        {/* Point C (current endpoint, not draggable) */}
+        <circle cx={C.x} cy={C.y} r={5} fill={C.red} stroke="#fff" strokeWidth="1.5" />
+      </svg>
+
+      {/* Sliders */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 12, background: C.bgCard, padding: "14px", borderRadius: 8, border: `1px solid ${C.border}` }}>
+        <div>
+          <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, marginBottom: 6 }}>
+            <label style={{ fontWeight: 600 }}>Current Speed: {currentSpeed.toFixed(1)} kn</label>
+          </div>
+          <input type="range" min="0" max="3" step="0.1" value={currentSpeed}
+            onChange={(e) => setCurrentSpeed(parseFloat(e.target.value))}
+            style={{ width: "100%", cursor: "pointer" }} />
+        </div>
+
+        <div>
+          <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, marginBottom: 6 }}>
+            <label style={{ fontWeight: 600 }}>Current Direction: {currentDir}°</label>
+          </div>
+          <input type="range" min="0" max="359" step="1" value={currentDir}
+            onChange={(e) => setCurrentDir(parseInt(e.target.value))}
+            style={{ width: "100%", cursor: "pointer" }} />
+        </div>
+
+        <div>
+          <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, marginBottom: 6 }}>
+            <label style={{ fontWeight: 600 }}>Boat Speed: {boatSpeed.toFixed(1)} kn</label>
+          </div>
+          <input type="range" min="1" max="8" step="0.1" value={boatSpeed}
+            onChange={(e) => setBoatSpeed(parseFloat(e.target.value))}
+            style={{ width: "100%", cursor: "pointer" }} />
+        </div>
+      </div>
+
+      {/* Results display */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10 }}>
+        <div style={{ background: C.bgCard, padding: "12px", borderRadius: 8, border: `1px solid ${C.border}`, textAlign: "center" }}>
+          <div style={{ fontSize: 10, color: C.textMuted, textTransform: "uppercase", fontWeight: 600, marginBottom: 4 }}>CTS</div>
+          <div style={{ fontSize: 18, fontWeight: 700, color: "#16a34a" }}>{cts}°</div>
+        </div>
+        <div style={{ background: C.bgCard, padding: "12px", borderRadius: 8, border: `1px solid ${C.border}`, textAlign: "center" }}>
+          <div style={{ fontSize: 10, color: C.textMuted, textTransform: "uppercase", fontWeight: 600, marginBottom: 4 }}>CMG</div>
+          <div style={{ fontSize: 18, fontWeight: 700, color: C.accent }}>{cmg}°</div>
+        </div>
+        <div style={{ background: C.bgCard, padding: "12px", borderRadius: 8, border: `1px solid ${C.border}`, textAlign: "center" }}>
+          <div style={{ fontSize: 10, color: C.textMuted, textTransform: "uppercase", fontWeight: 600, marginBottom: 4 }}>SOG</div>
+          <div style={{ fontSize: 18, fontWeight: 700, color: C.red }}>{sog.toFixed(1)} kn</div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function CurrentTriangleDiagram() {
   /* Points chosen so the three sides are clearly separated and labels don't overlap */
   const A = { x: 40, y: 260 };           /* Start / DR */
   const C1 = { x: 140, y: 200 };         /* End of current vector */
@@ -331,6 +485,164 @@ function calcVariation(year) {
 }
 
 // ─── Compass Correction Calculator Component ─────────────────────────────────
+
+function CDMVTPipeline() {
+  const [compassCourse, setCompassCourse] = useState("");
+  const [year, setYear] = useState("2025");
+  const [activeStep, setActiveStep] = useState(-1);
+
+  const valid = !isNaN(parseFloat(compassCourse)) && parseFloat(compassCourse) >= 0 && parseFloat(compassCourse) < 360 && !isNaN(parseInt(year));
+
+  const result = valid ? (() => {
+    const cc = parseFloat(compassCourse);
+    const dev = lookupDeviation(cc);
+    const vari = calcVariation(parseInt(year));
+    const mag = cc + dev.signed;
+    const tru = mag + vari.signed;
+    return { cc, dev, mag, vari, tru };
+  })() : null;
+
+  // Animate through steps when input changes
+  useEffect(() => {
+    if (!valid) {
+      setActiveStep(-1);
+      return;
+    }
+
+    let step = 0;
+    setActiveStep(0);
+
+    const timer1 = setTimeout(() => { step = 1; setActiveStep(1); }, 500);
+    const timer2 = setTimeout(() => { step = 2; setActiveStep(2); }, 1000);
+    const timer3 = setTimeout(() => { step = 3; setActiveStep(3); }, 1500);
+    const timer4 = setTimeout(() => { step = 4; setActiveStep(4); }, 2000);
+
+    return () => {
+      clearTimeout(timer1);
+      clearTimeout(timer2);
+      clearTimeout(timer3);
+      clearTimeout(timer4);
+    };
+  }, [compassCourse, year, valid]);
+
+  return (
+    <div style={{ padding: "16px", background: C.bgCard, borderRadius: 10, border: `1px solid ${C.border}` }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 12 }}>
+        <span style={{ fontSize: 13 }}>🔄</span>
+        <span style={{ fontSize: 12, fontWeight: 700, color: C.text }}>CDMVT: Compass → True Conversion</span>
+      </div>
+
+      {/* Input section */}
+      <div style={{ display: "flex", gap: 12, alignItems: "flex-end", marginBottom: 16, flexWrap: "wrap" }}>
+        <div>
+          <label style={{ display: "block", fontSize: 10, color: C.textMuted, fontWeight: 600, marginBottom: 3, textTransform: "uppercase" }}>Compass Course (°)</label>
+          <input type="number" min="0" max="359" step="0.1" value={compassCourse}
+            onChange={(e) => { setCompassCourse(e.target.value); setActiveStep(-1); }}
+            placeholder="180"
+            style={{
+              width: 80, padding: "7px 10px", borderRadius: 6, border: `1.5px solid ${C.border}`,
+              fontSize: 13, fontWeight: 600, textAlign: "center", background: C.bgCard, color: C.text, outline: "none",
+            }} />
+        </div>
+
+        <div>
+          <label style={{ display: "block", fontSize: 10, color: C.textMuted, fontWeight: 600, marginBottom: 3, textTransform: "uppercase" }}>Year</label>
+          <input type="number" min="2015" max="2035" value={year}
+            onChange={(e) => { setYear(e.target.value); setActiveStep(-1); }}
+            style={{
+              width: 60, padding: "7px 10px", borderRadius: 6, border: `1.5px solid ${C.border}`,
+              fontSize: 13, fontWeight: 600, textAlign: "center", background: C.bgCard, color: C.text, outline: "none",
+            }} />
+        </div>
+
+        <button onClick={() => {
+          if (valid && activeStep < 4) {
+            setActiveStep(activeStep + 1);
+          }
+        }}
+          style={{
+            padding: "7px 16px", borderRadius: 6, border: "none", fontSize: 11, fontWeight: 600,
+            cursor: valid ? "pointer" : "not-allowed", background: valid ? C.accent : C.border, color: valid ? "#fff" : C.textMuted,
+          }}>
+          {activeStep < 0 ? "Start" : activeStep < 4 ? "Next" : "Done"}
+        </button>
+      </div>
+
+      {/* Pipeline visualization */}
+      {valid && result && (
+        <div style={{ overflowX: "auto" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 0, minWidth: "max-content", paddingBottom: 8 }}>
+            {/* Compass */}
+            <div style={{
+              padding: "12px 16px", borderRadius: 8, border: `2px solid ${activeStep >= 0 ? C.accent : C.border}`,
+              background: activeStep >= 0 ? C.accentLight : C.bgCard, minWidth: 100, textAlign: "center",
+              transition: "all 0.3s",
+            }}>
+              <div style={{ fontSize: 10, color: C.textMuted, textTransform: "uppercase", fontWeight: 600, marginBottom: 2 }}>Compass</div>
+              <div style={{ fontSize: 16, fontWeight: 700, color: activeStep >= 0 ? C.accent : C.text }}>{result.cc.toFixed(1)}°</div>
+            </div>
+
+            {/* Arrow 1 */}
+            <div style={{ textAlign: "center", width: 40, fontSize: 12, color: activeStep >= 1 ? "#16a34a" : C.textMuted }}>→</div>
+
+            {/* Deviation */}
+            <div style={{
+              padding: "12px 16px", borderRadius: 8, border: `2px solid ${activeStep >= 1 ? "#16a34a" : C.border}`,
+              background: activeStep >= 1 ? C.greenLight : C.bgCard, minWidth: 100, textAlign: "center",
+              transition: "all 0.3s",
+            }}>
+              <div style={{ fontSize: 10, color: C.textMuted, textTransform: "uppercase", fontWeight: 600, marginBottom: 2 }}>Deviation</div>
+              <div style={{ fontSize: 14, fontWeight: 700, color: result.dev.dir === "E" ? "#16a34a" : C.red }}>
+                {result.dev.dir === "E" ? "+" : "−"}{result.dev.value.toFixed(1)}°
+              </div>
+            </div>
+
+            {/* Arrow 2 */}
+            <div style={{ textAlign: "center", width: 40, fontSize: 12, color: activeStep >= 2 ? C.gold : C.textMuted }}>→</div>
+
+            {/* Magnetic */}
+            <div style={{
+              padding: "12px 16px", borderRadius: 8, border: `2px solid ${activeStep >= 2 ? C.gold : C.border}`,
+              background: activeStep >= 2 ? C.goldLight : C.bgCard, minWidth: 100, textAlign: "center",
+              transition: "all 0.3s",
+            }}>
+              <div style={{ fontSize: 10, color: C.textMuted, textTransform: "uppercase", fontWeight: 600, marginBottom: 2 }}>Magnetic</div>
+              <div style={{ fontSize: 16, fontWeight: 700, color: activeStep >= 2 ? C.gold : C.text }}>{result.mag.toFixed(1)}°</div>
+            </div>
+
+            {/* Arrow 3 */}
+            <div style={{ textAlign: "center", width: 40, fontSize: 12, color: activeStep >= 3 ? "#7c3aed" : C.textMuted }}>→</div>
+
+            {/* Variation */}
+            <div style={{
+              padding: "12px 16px", borderRadius: 8, border: `2px solid ${activeStep >= 3 ? "#7c3aed" : C.border}`,
+              background: activeStep >= 3 ? "#f3e8ff" : C.bgCard, minWidth: 100, textAlign: "center",
+              transition: "all 0.3s",
+            }}>
+              <div style={{ fontSize: 10, color: C.textMuted, textTransform: "uppercase", fontWeight: 600, marginBottom: 2 }}>Variation</div>
+              <div style={{ fontSize: 14, fontWeight: 700, color: result.vari.dir === "E" ? "#16a34a" : C.red }}>
+                {result.vari.dir === "E" ? "+" : "−"}{result.vari.value.toFixed(1)}°
+              </div>
+            </div>
+
+            {/* Arrow 4 */}
+            <div style={{ textAlign: "center", width: 40, fontSize: 12, color: activeStep >= 4 ? C.green : C.textMuted }}>→</div>
+
+            {/* True */}
+            <div style={{
+              padding: "12px 16px", borderRadius: 8, border: `2px solid ${activeStep >= 4 ? C.green : C.border}`,
+              background: activeStep >= 4 ? C.greenLight : C.bgCard, minWidth: 100, textAlign: "center",
+              transition: "all 0.3s",
+            }}>
+              <div style={{ fontSize: 10, color: C.textMuted, textTransform: "uppercase", fontWeight: 600, marginBottom: 2 }}>True</div>
+              <div style={{ fontSize: 16, fontWeight: 700, color: activeStep >= 4 ? C.green : C.text }}>{result.tru.toFixed(1)}°</div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
 function CompassCorrectionCalculator() {
   const [compassCourse, setCompassCourse] = useState("");
@@ -1848,6 +2160,54 @@ const TOPICS = [
   },
 ];
 
+// ─── Danish Terminology Reference ────────────────────────────────────────────
+
+const DANISH_TERMS = {
+  0: [ // Navigation
+    { da: "misvisning", en: "variation", desc: "Angle between true north and magnetic north" },
+    { da: "afvigelse", en: "deviation", desc: "Magnetic interference aboard your vessel" },
+    { da: "krydspejling", en: "cross bearing", desc: "Position fix using bearings to multiple objects" },
+    { da: "bestik", en: "dead reckoning", desc: "Position based on course and speed" },
+    { da: "strømsætning", en: "current set", desc: "Direction the current pushes the vessel" },
+    { da: "afdrift", en: "leeway", desc: "Sideways drift caused by wind" },
+    { da: "retvisende", en: "true", desc: "Relative to true north" },
+    { da: "sejladsplanlægning", en: "voyage planning", desc: "Complete plan for a passage including routes, weather, tides" },
+  ],
+  1: [ // COLREGS
+    { da: "vigepligtig", en: "give-way vessel", desc: "Vessel required to manoeuvre to avoid collision" },
+    { da: "kursholderen", en: "stand-on vessel", desc: "Vessel with right of way, must maintain course and speed" },
+    { da: "styrbord", en: "starboard", desc: "Right side of vessel" },
+    { da: "bagbord", en: "port", desc: "Left side of vessel" },
+    { da: "agterude", en: "astern", desc: "Behind the vessel" },
+    { da: "forude", en: "ahead", desc: "In front of the vessel" },
+  ],
+  2: [ // Buoyage
+    { da: "afmærkning", en: "marks", desc: "Buoys and beacons that mark navigation features" },
+    { da: "lateralmærke", en: "lateral mark", desc: "Buoy marking port or starboard side of channel" },
+    { da: "kardinalmærke", en: "cardinal mark", desc: "Buoy indicating safe water direction relative to the mark" },
+    { da: "anduvningsmærke", en: "safe water mark", desc: "Mark indicating navigable water all around" },
+  ],
+  3: [ // Safety
+    { da: "redningsvest", en: "life jacket", desc: "Personal flotation device" },
+    { da: "nødsignal", en: "distress signal", desc: "Visual or radio signal indicating grave and imminent danger" },
+    { da: "mand over bord", en: "man overboard", desc: "Emergency situation when crew member falls into water" },
+  ],
+  4: [ // Meteorology
+    { da: "kuling", en: "gale", desc: "Wind force 7-8 on the Beaufort scale" },
+    { da: "vindstyrke", en: "wind force", desc: "Beaufort scale measurement of wind strength" },
+    { da: "frontsystem", en: "frontal system", desc: "Weather system with cold and warm fronts" },
+    { da: "barometer", en: "barometer", desc: "Instrument measuring atmospheric pressure" },
+  ],
+  5: [ // Fire Safety
+    { da: "brandtrekant", en: "fire triangle", desc: "Three elements required for fire: fuel, oxygen, heat" },
+    { da: "pulverslukker", en: "powder extinguisher", desc: "Dry powder fire extinguisher effective on multiple fire classes" },
+  ],
+  6: [ // Watchkeeping
+    { da: "vagthold", en: "watchkeeping", desc: "Continuous observation and maintenance of safety at sea" },
+    { da: "forurening", en: "pollution", desc: "Discharge of harmful substances into the marine environment" },
+  ],
+};
+
 // ─── Main App ────────────────────────────────────────────────────────────────
 
 function getInitialProgress() {
@@ -1859,6 +2219,7 @@ export default function App() {
   const [selectedTopic, setSelectedTopic] = useState(null);
   const [progress, setProgress] = useState(getInitialProgress);
   const [quizState, setQuizState] = useState(null);
+  const [questionHistory, setQuestionHistory] = useState({});
 
   const topicMastery = useMemo(() =>
     progress.map(p => p.total === 0 ? 0 : Math.round((p.correct / p.total) * 100)), [progress]);
@@ -1869,11 +2230,57 @@ export default function App() {
     return t === 0 ? 0 : Math.round((c / t) * 100);
   }, [progress]);
 
-  function startQuiz(topicId) {
+  function startQuiz(topicId, withTimer = false) {
     const qs = QUESTIONS.filter(q => topicId === "all" ? true : q.topic === topicId);
-    const shuffled = [...qs].sort(() => Math.random() - 0.5);
-    const count = topicId === "all" ? Math.min(25, shuffled.length) : Math.min(12, shuffled.length);
-    setQuizState({ topicId, questions: shuffled.slice(0, count), currentIndex: 0, answers: [], selectedOption: null, showExplanation: false });
+
+    // Weighted selection based on question history
+    const weighted = qs.map((q, idx) => {
+      const qIdx = QUESTIONS.indexOf(q);
+      const hist = questionHistory[qIdx] || { attempts: 0, correct: 0, lastSeen: 0 };
+
+      // Never seen gets high priority (weight = 10)
+      if (hist.attempts === 0) return { q, idx: qIdx, weight: 10 };
+
+      // Low success rate gets high priority
+      const accuracy = hist.correct / hist.attempts;
+      const ageMs = Date.now() - hist.lastSeen;
+      const ageDays = ageMs / (1000 * 60 * 60 * 24);
+
+      // Base weight: inverse of accuracy (low accuracy = high weight)
+      let weight = accuracy === 0 ? 8 : (1 - accuracy) * 6;
+
+      // Recently seen correct questions get lower priority
+      if (accuracy >= 0.8 && ageDays < 1) {
+        weight = 0.5;
+      }
+
+      return { q, idx: qIdx, weight };
+    });
+
+    // Weighted random selection without replacement
+    const selected = [];
+    const count = topicId === "all" ? Math.min(25, weighted.length) : Math.min(12, weighted.length);
+    const remaining = [...weighted];
+
+    while (selected.length < count && remaining.length > 0) {
+      const totalWeight = remaining.reduce((s, x) => s + x.weight, 0);
+      let rand = Math.random() * totalWeight;
+      let pickedIdx = 0;
+      for (let i = 0; i < remaining.length; i++) {
+        rand -= remaining[i].weight;
+        if (rand <= 0) { pickedIdx = i; break; }
+      }
+      selected.push(remaining[pickedIdx].q);
+      remaining.splice(pickedIdx, 1);
+    }
+
+    // Set time limit in seconds: 45 min for full exam, 15 min for topic quiz
+    let timeLimit = null;
+    if (withTimer) {
+      timeLimit = topicId === "all" ? 45 * 60 : 15 * 60;
+    }
+
+    setQuizState({ topicId, questions: selected, currentIndex: 0, answers: [], selectedOption: null, showExplanation: false, timeLimit, timeRemaining: timeLimit, startTime: Date.now() });
     setView("quiz");
   }
 
@@ -1886,6 +2293,22 @@ export default function App() {
     const { currentIndex, questions, answers, selectedOption, topicId } = quizState;
     const isCorrect = selectedOption === questions[currentIndex].answer;
     const newAnswers = [...answers, { selected: selectedOption, correct: isCorrect }];
+    const q = questions[currentIndex];
+    const qIdx = QUESTIONS.indexOf(q);
+
+    // Update question history
+    setQuestionHistory(prev => {
+      const hist = prev[qIdx] || { attempts: 0, correct: 0, lastSeen: 0 };
+      return {
+        ...prev,
+        [qIdx]: {
+          attempts: hist.attempts + 1,
+          correct: hist.correct + (isCorrect ? 1 : 0),
+          lastSeen: Date.now(),
+        },
+      };
+    });
+
     if (currentIndex + 1 >= questions.length) {
       setProgress(prev => {
         const next = [...prev];
@@ -1923,7 +2346,7 @@ export default function App() {
         </div>
         <div style={{ display: "flex", gap: 8 }}>
           <Btn label="Dashboard" onClick={() => setView("dashboard")} ghost active={view === "dashboard"} />
-          <Btn label="Full Exam (25 Qs)" onClick={() => startQuiz("all")} />
+          <Btn label="Full Exam (25 Qs)" onClick={() => startQuiz("all", true)} />
         </div>
       </header>
 
@@ -2130,6 +2553,14 @@ function StudyView({ topic, mastery, onBack, onQuiz }) {
       {/* Calculator tools tab (Navigation only) */}
       {hasTools && activeTab === "tools" && (
         <div>
+          <div style={{ background: "#fff", borderRadius: 12, padding: "20px 24px", marginBottom: 16, border: `1px solid ${C.border}` }}>
+            <h3 style={{ margin: "0 0 14px", fontSize: 14, fontWeight: 700, color: C.textSec }}>Current Triangle Calculator</h3>
+            <InteractiveCurrentTriangle />
+          </div>
+          <div style={{ background: "#fff", borderRadius: 12, padding: "20px 24px", marginBottom: 16, border: `1px solid ${C.border}` }}>
+            <h3 style={{ margin: "0 0 14px", fontSize: 14, fontWeight: 700, color: C.textSec }}>CDMVT Pipeline</h3>
+            <CDMVTPipeline />
+          </div>
           <CompassCorrectionCalculator />
           <SDTCalculator />
         </div>
@@ -2170,7 +2601,7 @@ function StudyView({ topic, mastery, onBack, onQuiz }) {
           {topic.id === 0 && (
             <div style={{ display: "flex", flexWrap: "wrap", gap: 24, alignItems: "center", justifyContent: "center" }}>
               <CompassRose size={200} />
-              <CurrentTriangleSVG />
+              <CurrentTriangleDiagram />
             </div>
           )}
           {topic.id === 1 && (
@@ -2219,6 +2650,37 @@ function StudyView({ topic, mastery, onBack, onQuiz }) {
           )}
         </div>
       ))}
+
+      {/* Danish Terminology Reference */}
+      {((hasTools || hasLightsExercise || hasBuoyExercise) ? activeTab === "study" : true) && DANISH_TERMS[topic.id] && (
+        <div style={{ background: "#fff", borderRadius: 10, marginBottom: 8, border: `1px solid ${open === topic.studyContent.length ? topic.color + "44" : C.border}`, overflow: "hidden", transition: "border-color 0.2s" }}>
+          <button onClick={() => setOpen(open === topic.studyContent.length ? -1 : topic.studyContent.length)} style={{
+            width: "100%", padding: "14px 20px", background: "none", border: "none",
+            color: C.text, fontSize: 14, fontWeight: 600, cursor: "pointer",
+            display: "flex", justifyContent: "space-between", alignItems: "center", textAlign: "left",
+          }}>
+            <span>Danish Terms (Danske Termer)</span>
+            <span style={{ color: C.textMuted, transform: open === topic.studyContent.length ? "rotate(180deg)" : "none", transition: "transform 0.2s", fontSize: 16 }}>▾</span>
+          </button>
+          {open === topic.studyContent.length && (
+            <div style={{ padding: "0 20px 18px" }}>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 10 }}>
+                {DANISH_TERMS[topic.id].map((term, j) => (
+                  <div key={j} style={{ paddingBottom: 10, borderBottom: j < DANISH_TERMS[topic.id].length - 1 ? `1px solid ${C.border}` : "none" }}>
+                    <div style={{ display: "flex", gap: 8, alignItems: "flex-start" }}>
+                      <div style={{ minWidth: 140 }}>
+                        <div style={{ fontSize: 12, fontWeight: 700, color: C.text }}>{term.da}</div>
+                        <div style={{ fontSize: 11, color: C.textMuted }}>({term.en})</div>
+                      </div>
+                      <div style={{ fontSize: 12, color: C.textSec, lineHeight: 1.5 }}>{term.desc}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -2344,21 +2806,56 @@ function QuizSDTCalc() {
 }
 
 function QuizView({ qs, onAnswer, onNext, onQuit }) {
-  const { currentIndex, questions, selectedOption, showExplanation } = qs;
+  const { currentIndex, questions, selectedOption, showExplanation, timeLimit, startTime } = qs;
   const q = questions[currentIndex];
   const topic = TOPICS[q.topic];
   const isCorrect = selectedOption === q.answer;
   const pct = (currentIndex / questions.length) * 100;
   const isNavQuestion = q.topic === 0;
   const [showCalc, setShowCalc] = useState(true);
+  const [timeRemaining, setTimeRemaining] = useState(null);
+
+  // Timer countdown effect
+  useEffect(() => {
+    if (!timeLimit || !startTime) return;
+
+    const interval = setInterval(() => {
+      const elapsed = Math.floor((Date.now() - startTime) / 1000);
+      const remaining = Math.max(0, timeLimit - elapsed);
+      setTimeRemaining(remaining);
+
+      if (remaining === 0) {
+        clearInterval(interval);
+        // Auto-submit remaining questions as unanswered (wrong)
+        // This would be handled by calling onNext with unanswered questions
+      }
+    }, 100);
+
+    return () => clearInterval(interval);
+  }, [timeLimit, startTime]);
+
+  const timerDisplay = timeRemaining !== null ? (() => {
+    const mins = Math.floor(timeRemaining / 60);
+    const secs = timeRemaining % 60;
+    const display = `${mins}:${secs.toString().padStart(2, '0')}`;
+    let color = C.textMuted;
+    if (timeRemaining < 120) color = C.red;
+    else if (timeRemaining < 300) color = C.gold;
+    return { display, color };
+  })() : null;
 
   return (
     <div style={{ maxWidth: 680, margin: "0 auto" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
         <button onClick={onQuit} style={{ background: "none", border: "none", color: C.accent, fontSize: 13, cursor: "pointer", padding: 0 }}>← Quit</button>
-        <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+        <div style={{ display: "flex", gap: 16, alignItems: "center" }}>
           <span style={{ fontSize: 11, color: C.textMuted }}>{topic.icon} {topic.title}</span>
           <span style={{ fontSize: 13, fontWeight: 700 }}>{currentIndex + 1}/{questions.length}</span>
+          {timerDisplay && (
+            <div style={{ fontSize: 16, fontWeight: 700, color: timerDisplay.color, minWidth: 50, textAlign: "right" }}>
+              {timerDisplay.display}
+            </div>
+          )}
         </div>
       </div>
       <Bar value={pct} color={C.accent} h={3} />
@@ -2456,10 +2953,20 @@ function QuizView({ qs, onAnswer, onNext, onQuit }) {
 
 function ResultsView({ qs, topics, onRetry, onHome }) {
   const { questions, answers, topicId } = qs;
+  const [reviewMode, setReviewMode] = useState(false);
+  const [reviewIndex, setReviewIndex] = useState(0);
+
   const correct = answers.filter(a => a.correct).length;
   const total = answers.length;
   const pct = Math.round((correct / total) * 100);
   const passed = pct >= 70;
+
+  const mistakeIndices = useMemo(() => {
+    return answers
+      .map((a, i) => ({ idx: i, correct: a.correct }))
+      .filter(x => !x.correct)
+      .map(x => x.idx);
+  }, [answers]);
 
   const breakdown = useMemo(() => {
     const b = {};
@@ -2471,6 +2978,63 @@ function ResultsView({ qs, topics, onRetry, onHome }) {
     });
     return b;
   }, [answers, questions]);
+
+  if (reviewMode && mistakeIndices.length > 0) {
+    const qIdx = mistakeIndices[reviewIndex];
+    const q = questions[qIdx];
+    const a = answers[qIdx];
+    return (
+      <div style={{ maxWidth: 620, margin: "0 auto" }}>
+        <button onClick={() => setReviewMode(false)} style={{ display: "flex", alignItems: "center", gap: 4, background: "none", border: "none", color: C.accent, fontSize: 13, cursor: "pointer", padding: 0, marginBottom: 16 }}>
+          ← Back to Results
+        </button>
+
+        <div style={{ background: "#fff", borderRadius: 14, padding: "24px 28px", marginBottom: 20, border: `1px solid ${C.border}` }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+            <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700 }}>Review Mistakes</h2>
+            <span style={{ fontSize: 12, color: C.textMuted, fontWeight: 600 }}>{reviewIndex + 1} / {mistakeIndices.length}</span>
+          </div>
+
+          <h3 style={{ margin: "16px 0 12px", fontSize: 15, fontWeight: 600, color: C.text }}>{q.q}</h3>
+
+          <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 16 }}>
+            {q.options.map((opt, idx) => {
+              const isSel = idx === a.selected;
+              const isAns = idx === q.answer;
+              const isWrong = isSel && !isAns;
+              const bg = isWrong ? C.redLight : isAns ? C.greenLight : "#fff";
+              const bd = isWrong ? C.red : isAns ? C.green : C.border;
+              const fg = isWrong ? C.red : isAns ? C.green : C.text;
+              return (
+                <div key={idx} style={{
+                  padding: "10px 12px", borderRadius: 8, border: `1.5px solid ${bd}`, background: bg,
+                  color: fg, fontSize: 13, display: "flex", alignItems: "center", gap: 8,
+                }}>
+                  {isAns && <span style={{ flexShrink: 0, fontWeight: 700 }}>✓</span>}
+                  {isWrong && <span style={{ flexShrink: 0, fontWeight: 700 }}>✗</span>}
+                  <span>{opt}</span>
+                </div>
+              );
+            })}
+          </div>
+
+          <div style={{
+            padding: "12px", borderRadius: 8,
+            background: C.greenLight, border: `1px solid ${C.green}33`,
+            marginBottom: 16,
+          }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: C.green, marginBottom: 4 }}>Explanation</div>
+            <div style={{ fontSize: 12, color: C.textSec, lineHeight: 1.6 }}>{q.explanation}</div>
+          </div>
+
+          <div style={{ display: "flex", gap: 10, justifyContent: "space-between" }}>
+            <Btn label={reviewIndex === 0 ? "First" : "← Previous"} onClick={() => setReviewIndex(Math.max(0, reviewIndex - 1))} ghost small disabled={reviewIndex === 0} />
+            <Btn label={reviewIndex === mistakeIndices.length - 1 ? "Last" : "Next →"} onClick={() => setReviewIndex(Math.min(mistakeIndices.length - 1, reviewIndex + 1))} ghost small disabled={reviewIndex === mistakeIndices.length - 1} />
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div style={{ maxWidth: 620, margin: "0 auto" }}>
@@ -2516,7 +3080,8 @@ function ResultsView({ qs, topics, onRetry, onHome }) {
         ))}
       </div>
 
-      <div style={{ display: "flex", gap: 10, justifyContent: "center" }}>
+      <div style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap" }}>
+        {mistakeIndices.length > 0 && <Btn label="Review Mistakes" onClick={() => { setReviewIndex(0); setReviewMode(true); }} />}
         <Btn label="Try Again" onClick={onRetry} ghost />
         <Btn label="Dashboard" onClick={onHome} />
       </div>
