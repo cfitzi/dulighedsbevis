@@ -2380,18 +2380,64 @@ function BuoyIdentificationExercise() {
 // ─── Sound Signals Data ──────────────────────────────────────────────────────
 
 const SOUND_SIGNALS = [
-  { id: "1short", name: "One short blast", pattern: [{ type: "short" }], meaning: "I am altering my course to starboard", rule: "Rule 34(a)" },
-  { id: "2short", name: "Two short blasts", pattern: [{ type: "short" }, { type: "short" }], meaning: "I am altering my course to port", rule: "Rule 34(a)" },
-  { id: "3short", name: "Three short blasts", pattern: [{ type: "short" }, { type: "short" }, { type: "short" }], meaning: "I am operating astern propulsion", rule: "Rule 34(a)" },
-  { id: "5short", name: "Five or more short rapid blasts", pattern: [{ type: "short" }, { type: "short" }, { type: "short" }, { type: "short" }, { type: "short" }], meaning: "Doubt / danger signal — I do not understand your intentions", rule: "Rule 34(d)" },
-  { id: "1prolonged", name: "One prolonged blast", pattern: [{ type: "long" }], meaning: "Warning signal: approaching a bend or area of obscured visibility", rule: "Rule 34(e)" },
-  { id: "1long2short", name: "One prolonged + two short", pattern: [{ type: "long" }, { type: "short" }, { type: "short" }], meaning: "I intend to overtake you on your starboard side", rule: "Rule 34(c)(i)" },
-  { id: "1long1short", name: "One prolonged + one short", pattern: [{ type: "long" }, { type: "short" }], meaning: "I intend to overtake you on your port side (inland waters variant)", rule: "Rule 34(c)" },
-  { id: "2long1short", name: "Two prolonged + one short", pattern: [{ type: "long" }, { type: "long" }, { type: "short" }], meaning: "Agreement to overtaking on starboard side", rule: "Rule 34(c)(ii)" },
-  { id: "fog-power", name: "Fog: one prolonged every 2 min", pattern: [{ type: "long" }], meaning: "Power-driven vessel making way in restricted visibility", rule: "Rule 35(a)", fog: true },
-  { id: "fog-power-stopped", name: "Fog: two prolonged every 2 min", pattern: [{ type: "long" }, { type: "long" }], meaning: "Power-driven vessel underway but stopped / not making way", rule: "Rule 35(b)", fog: true },
-  { id: "fog-nuc-ram-sail-fish-tow", name: "Fog: one prolonged + two short", pattern: [{ type: "long" }, { type: "short" }, { type: "short" }], meaning: "Vessel NUC, RAM, constrained by draught, sailing, fishing, or towing — in restricted visibility", rule: "Rule 35(c)", fog: true },
-  { id: "fog-towed", name: "Fog: one prolonged + three short", pattern: [{ type: "long" }, { type: "short" }, { type: "short" }, { type: "short" }], meaning: "Last vessel being towed (if manned) in restricted visibility", rule: "Rule 35(e)", fog: true },
+  // ── Manoeuvre Signals ──
+  { id: "1short", name: "One short blast", category: "manoeuvre",
+    pattern: [{ type: "short" }], meaning: "I am altering my course to starboard", rule: "Rule 34(a)" },
+  { id: "2short", name: "Two short blasts", category: "manoeuvre",
+    pattern: [{ type: "short" }, { type: "short" }], meaning: "I am altering my course to port", rule: "Rule 34(a)" },
+  { id: "3short", name: "Three short blasts", category: "manoeuvre",
+    pattern: [{ type: "short" }, { type: "short" }, { type: "short" }], meaning: "I am operating astern propulsion", rule: "Rule 34(a)" },
+  { id: "5short", name: "Five or more short rapid blasts", category: "manoeuvre",
+    pattern: [{ type: "short" }, { type: "short" }, { type: "short" }, { type: "short" }, { type: "short" }],
+    meaning: "Doubt / danger signal — You are standing into danger (U). I do not understand your intentions", rule: "Rule 34(d)" },
+  { id: "1prolonged", name: "One prolonged blast", category: "manoeuvre",
+    pattern: [{ type: "long" }], meaning: "Warning signal: nearing a bend where other vessels may be obscured", rule: "Rule 34(e)" },
+  { id: "1long2short", name: "One prolonged + two short", category: "manoeuvre",
+    pattern: [{ type: "long" }, { type: "short" }, { type: "short" }],
+    meaning: "In a narrow channel: I intend to overtake you on your starboard side", rule: "Rule 34(c)(i)" },
+  { id: "1long1short", name: "One prolonged + one short", category: "manoeuvre",
+    pattern: [{ type: "long" }, { type: "short" }],
+    meaning: "In a narrow channel: I intend to overtake you on your port side", rule: "Rule 34(c)(ii)" },
+  { id: "overtake-agree", name: "Long-short-long-short (Charlie)", category: "manoeuvre",
+    pattern: [{ type: "long" }, { type: "short" }, { type: "long" }, { type: "short" }],
+    meaning: "The vessel about to be overtaken agrees — overtaking can be done without risk", rule: "Rule 34(c)(ii)" },
+  // ── Fog Signals (whistle) ──
+  { id: "fog-power", name: "Fog: one prolonged every 2 min", category: "fog",
+    pattern: [{ type: "long" }], meaning: "Power-driven vessel making way in restricted visibility", rule: "Rule 35(a)", fog: true },
+  { id: "fog-power-stopped", name: "Fog: two prolonged every 2 min", category: "fog",
+    pattern: [{ type: "long" }, { type: "long" }], meaning: "Power-driven vessel underway but stopped / not making way", rule: "Rule 35(b)", fog: true },
+  { id: "fog-nuc-ram-sail-fish-tow", name: "Fog: one prolonged + two short", category: "fog",
+    pattern: [{ type: "long" }, { type: "short" }, { type: "short" }],
+    meaning: "Vessel NUC, RAM, constrained by draught, sailing, fishing, or towing — in restricted visibility", rule: "Rule 35(c)", fog: true },
+  { id: "fog-towed", name: "Fog: one prolonged + three short", category: "fog",
+    pattern: [{ type: "long" }, { type: "short" }, { type: "short" }, { type: "short" }],
+    meaning: "Last vessel being towed (if manned) in restricted visibility", rule: "Rule 35(e)", fog: true },
+  // ── Fog Signals (bell & gong) ──
+  { id: "fog-anchor-small", name: "Fog: rapid bell ringing (5s) every 1 min", category: "bell",
+    pattern: [{ type: "bell" }],
+    meaning: "Vessel at anchor, length < 100 metres, in restricted visibility", rule: "Rule 35(g)", fog: true },
+  { id: "fog-anchor-large", name: "Fog: rapid bell (5s) + gong (5s) every 1 min", category: "bell",
+    pattern: [{ type: "bell" }, { type: "gong" }],
+    meaning: "Vessel at anchor, length ≥ 100 metres — bell forward, gong aft, in restricted visibility", rule: "Rule 35(g)", fog: true },
+  { id: "fog-anchor-attention", name: "Fog: anchor signal + Morse R (·−·)", category: "bell",
+    pattern: [{ type: "short" }, { type: "long" }, { type: "short" }],
+    meaning: "Vessel at anchor attracting attention of approaching vessel. Morse 'R' (Romeo) on whistle, in addition to bell/gong", rule: "Rule 35(g)", fog: true },
+  { id: "fog-aground-small", name: "Fog: 3 bell strokes + rapid ringing + 3 strokes", category: "bell",
+    pattern: [{ type: "bellstroke" }, { type: "bellstroke" }, { type: "bellstroke" }, { type: "bell" }, { type: "bellstroke" }, { type: "bellstroke" }, { type: "bellstroke" }],
+    meaning: "Vessel aground, length < 100 m. May also sound U (5+ short) as danger warning. Interval: 1 minute", rule: "Rule 35(h)", fog: true },
+  { id: "fog-aground-large", name: "Fog: 3 strokes + bell + 3 strokes + gong", category: "bell",
+    pattern: [{ type: "bellstroke" }, { type: "bellstroke" }, { type: "bellstroke" }, { type: "bell" }, { type: "bellstroke" }, { type: "bellstroke" }, { type: "bellstroke" }, { type: "gong" }],
+    meaning: "Vessel aground, length ≥ 100 m — bell forward + gong aft. May also sound U. Interval: 1 minute", rule: "Rule 35(h)", fog: true },
+  { id: "fog-pilot", name: "Fog: 4 short blasts (Morse H ····)", category: "fog",
+    pattern: [{ type: "short" }, { type: "short" }, { type: "short" }, { type: "short" }],
+    meaning: "Pilot vessel on pilotage duty — identity signal (not obligatory)", rule: "Rule 35(j)", fog: true },
+  // ── Dredging vessel signals ──
+  { id: "dredge-danger", name: "Prolonged + 2 short + 6 single bell strokes", category: "bell",
+    pattern: [{ type: "long" }, { type: "short" }, { type: "short" }, { type: "bellstroke" }, { type: "bellstroke" }, { type: "bellstroke" }, { type: "bellstroke" }, { type: "bellstroke" }, { type: "bellstroke" }],
+    meaning: "Dredging/underwater ops — pass as if a red lateral buoy (danger side). Interval: 2 minutes", rule: "Local rule" },
+  { id: "dredge-safe", name: "Prolonged + 2 short + 6 double bell strokes", category: "bell",
+    pattern: [{ type: "long" }, { type: "short" }, { type: "short" }, { type: "belldouble" }, { type: "belldouble" }, { type: "belldouble" }, { type: "belldouble" }, { type: "belldouble" }, { type: "belldouble" }],
+    meaning: "Dredging/underwater ops — pass as if a green lateral buoy (safe side). Interval: 2 minutes", rule: "Local rule" },
 ];
 
 // Helper function to play sound signals using Web Audio API
@@ -2400,50 +2446,147 @@ function playSignalAudio(pattern) {
   let time = audioContext.currentTime;
 
   pattern.forEach(note => {
-    const freq = note.type === "short" ? 440 : 350; // 440Hz for short, 350Hz for long
-    const duration = note.type === "short" ? 0.2 : 1.2; // 200ms short, 1200ms long
-    const silence = note.type === "short" ? 0.3 : 0.4; // 300ms short, 400ms long
+    const t = note.type;
 
-    const osc = audioContext.createOscillator();
-    const gain = audioContext.createGain();
+    if (t === "short" || t === "long") {
+      // Whistle/horn sound
+      const freq = t === "short" ? 440 : 350;
+      const duration = t === "short" ? 0.2 : 1.2;
+      const silence = t === "short" ? 0.3 : 0.4;
 
-    osc.connect(gain);
-    gain.connect(audioContext.destination);
+      const osc = audioContext.createOscillator();
+      const gain = audioContext.createGain();
+      osc.connect(gain);
+      gain.connect(audioContext.destination);
+      osc.type = "square";
+      osc.frequency.value = freq;
+      gain.gain.setValueAtTime(0, time);
+      gain.gain.linearRampToValueAtTime(0.3, time + 0.02);
+      gain.gain.setValueAtTime(0.3, time + duration - 0.02);
+      gain.gain.linearRampToValueAtTime(0, time + duration);
+      osc.start(time);
+      osc.stop(time + duration);
+      time += duration + silence;
 
-    osc.type = "square";
-    osc.frequency.value = freq;
+    } else if (t === "bellstroke") {
+      // Single bell stroke — high metallic ping
+      const osc = audioContext.createOscillator();
+      const gain = audioContext.createGain();
+      osc.connect(gain);
+      gain.connect(audioContext.destination);
+      osc.type = "sine";
+      osc.frequency.value = 1200;
+      gain.gain.setValueAtTime(0.4, time);
+      gain.gain.exponentialRampToValueAtTime(0.001, time + 0.3);
+      osc.start(time);
+      osc.stop(time + 0.35);
+      time += 0.4;
 
-    // Fade in 20ms
-    gain.gain.setValueAtTime(0, time);
-    gain.gain.linearRampToValueAtTime(0.3, time + 0.02);
-    // Hold tone
-    gain.gain.setValueAtTime(0.3, time + duration - 0.02);
-    // Fade out 20ms
-    gain.gain.linearRampToValueAtTime(0, time + duration);
+    } else if (t === "bell") {
+      // Rapid bell ringing (~5 seconds, represented as quick successive strikes)
+      for (let i = 0; i < 8; i++) {
+        const osc = audioContext.createOscillator();
+        const gain = audioContext.createGain();
+        osc.connect(gain);
+        gain.connect(audioContext.destination);
+        osc.type = "sine";
+        osc.frequency.value = 1200 + (i % 2) * 100;
+        gain.gain.setValueAtTime(0.35, time);
+        gain.gain.exponentialRampToValueAtTime(0.001, time + 0.15);
+        osc.start(time);
+        osc.stop(time + 0.2);
+        time += 0.18;
+      }
+      time += 0.3;
 
-    osc.start(time);
-    osc.stop(time + duration);
+    } else if (t === "gong") {
+      // Gong — low resonant tone
+      const osc = audioContext.createOscillator();
+      const gain = audioContext.createGain();
+      osc.connect(gain);
+      gain.connect(audioContext.destination);
+      osc.type = "sine";
+      osc.frequency.value = 220;
+      gain.gain.setValueAtTime(0.5, time);
+      gain.gain.exponentialRampToValueAtTime(0.001, time + 1.0);
+      osc.start(time);
+      osc.stop(time + 1.1);
+      time += 1.2;
 
-    time += duration + silence;
+    } else if (t === "belldouble") {
+      // Double bell stroke (two quick strikes)
+      for (let i = 0; i < 2; i++) {
+        const osc = audioContext.createOscillator();
+        const gain = audioContext.createGain();
+        osc.connect(gain);
+        gain.connect(audioContext.destination);
+        osc.type = "sine";
+        osc.frequency.value = 1200;
+        gain.gain.setValueAtTime(0.4, time);
+        gain.gain.exponentialRampToValueAtTime(0.001, time + 0.2);
+        osc.start(time);
+        osc.stop(time + 0.25);
+        time += 0.15;
+      }
+      time += 0.25;
+    }
   });
 }
 
 // SVG pattern display component
 function SignalPatternSVG({ pattern, width = 200, height = 30 }) {
   let xPos = 10;
-  const bars = [];
+  const items = [];
+  const cy = height / 2;
 
   pattern.forEach((note, i) => {
-    const barWidth = note.type === "short" ? 20 : 60;
-    bars.push(
-      <rect key={i} x={xPos} y={8} width={barWidth} height={14} fill="#4b5563" rx={2} />
-    );
-    xPos += barWidth + 8;
+    const t = note.type;
+    if (t === "short" || t === "long") {
+      const barWidth = t === "short" ? 20 : 60;
+      items.push(
+        <rect key={i} x={xPos} y={cy - 7} width={barWidth} height={14} fill="#4b5563" rx={2} />
+      );
+      xPos += barWidth + 8;
+    } else if (t === "bellstroke") {
+      // Single bell dot
+      items.push(
+        <circle key={i} cx={xPos + 5} cy={cy} r={5} fill="#ca8a04" />
+      );
+      xPos += 16;
+    } else if (t === "bell") {
+      // Rapid bell: wavy line
+      items.push(
+        <g key={i}>
+          <rect x={xPos} y={cy - 7} width={40} height={14} fill="#ca8a04" rx={7} opacity={0.25} />
+          <text x={xPos + 20} y={cy + 4} textAnchor="middle" fontSize="10" fontWeight="700" fill="#ca8a04">bell</text>
+        </g>
+      );
+      xPos += 48;
+    } else if (t === "gong") {
+      // Gong: larger icon
+      items.push(
+        <g key={i}>
+          <rect x={xPos} y={cy - 7} width={40} height={14} fill="#7c3aed" rx={7} opacity={0.25} />
+          <text x={xPos + 20} y={cy + 4} textAnchor="middle" fontSize="10" fontWeight="700" fill="#7c3aed">gong</text>
+        </g>
+      );
+      xPos += 48;
+    } else if (t === "belldouble") {
+      // Double bell stroke — two dots close together
+      items.push(
+        <g key={i}>
+          <circle cx={xPos + 4} cy={cy} r={4} fill="#ca8a04" />
+          <circle cx={xPos + 14} cy={cy} r={4} fill="#ca8a04" />
+        </g>
+      );
+      xPos += 24;
+    }
   });
 
+  const svgW = Math.max(width, xPos + 10);
   return (
-    <svg width={Math.max(width, xPos + 10)} height={height} viewBox={`0 0 ${Math.max(width, xPos + 10)} ${height}`} style={{ background: "#f5f5f5", borderRadius: 8 }}>
-      {bars}
+    <svg width={svgW} height={height} viewBox={`0 0 ${svgW} ${height}`} style={{ background: "#f5f5f5", borderRadius: 8 }}>
+      {items}
     </svg>
   );
 }
@@ -3078,6 +3221,13 @@ const QUESTIONS = [
   { topic: 1, q: "What does three short blasts on the horn mean?", options: ["My engines are going astern (I am operating astern propulsion)", "I am turning to starboard", "I am in distress", "I am at anchor"], answer: 0, explanation: "Rule 34: Three short blasts = 'I am operating astern propulsion.' Note: this doesn't necessarily mean the vessel is moving backwards — just that the engines are in reverse." },
   { topic: 1, q: "What is the hierarchy of 'give way' under Rule 18?", options: ["Power → Sailing → Fishing → CBD → RAM → NUC (each gives way to those further right)", "All vessels are equal in terms of navigation rights and obligations", "Larger vessels always have priority regardless of vessel type", "Only sail gives way to power-driven vessels"], answer: 0, explanation: "Rule 18 hierarchy (most privileged first): NUC → RAM → Constrained by Draught → Fishing → Sailing → Power-driven. Each gives way to those above it." },
   { topic: 1, q: "A vessel aground at night shows what lights?", options: ["The anchor lights PLUS two red all-round lights vertically", "Only two red lights vertically with no anchor light", "A flashing red light at the bow and stern", "Three red lights vertically arranged on the mast"], answer: 0, explanation: "Rule 30: A vessel aground shows anchor lights (ball forward, white all-round) plus two red all-round lights in a vertical line. By day: three balls vertically." },
+  { topic: 1, q: "In fog, a vessel at anchor (< 100 m) sounds what signal every minute?", options: ["Rapid bell ringing for about 5 seconds", "One prolonged blast", "Two prolonged blasts", "Three short blasts"], answer: 0, explanation: "Rule 35(g): A vessel at anchor < 100 m rings the bell rapidly for about 5 seconds at intervals of not more than 1 minute." },
+  { topic: 1, q: "In fog, a vessel at anchor ≥ 100 m sounds what additional signal after the bell?", options: ["A gong sounded rapidly for about 5 seconds in the after part", "Five short blasts on the whistle", "A second bell ringing at the stern", "One prolonged blast on the horn"], answer: 0, explanation: "Rule 35(g): Vessels ≥ 100 m ring the bell forward, then immediately sound a gong rapidly for 5 seconds in the after part. This helps other vessels judge the ship's length and orientation." },
+  { topic: 1, q: "A vessel aground in fog sounds what signal?", options: ["3 distinct bell strokes + rapid bell ringing (5s) + 3 strokes, every 1 minute", "Continuous bell ringing without pause", "5 short blasts on the whistle every 2 minutes", "One prolonged blast every minute"], answer: 0, explanation: "Rule 35(h): A vessel aground sounds 3 separate and distinct strokes on the bell, then rapid ringing for 5 seconds, then 3 more strokes. May also sound U (5+ short) as warning." },
+  { topic: 1, q: "What does the sound signal long-short-long-short (Morse C / Charlie) mean?", options: ["Agreement from the vessel being overtaken — overtaking can proceed safely", "I am altering course to starboard", "I intend to overtake you on your starboard side", "Danger signal — keep clear"], answer: 0, explanation: "Rule 34(c): When being overtaken in a narrow channel, the vessel about to be overtaken sounds long-short-long-short (Charlie) to indicate agreement." },
+  { topic: 1, q: "A vessel at anchor in fog may sound Morse 'R' (·−·) on the whistle. Why?", options: ["To warn an approaching vessel of its position and attract attention", "To signal that it is ready to weigh anchor and depart", "To indicate it has restricted ability to manoeuvre", "To signal that its radar is not working"], answer: 0, explanation: "Rule 35(g): A vessel at anchor may in addition sound Morse R (Romeo: short-long-short) on the whistle to warn an approaching vessel of its position." },
+  { topic: 1, q: "In fog, 4 short blasts (Morse H ····) identify which vessel?", options: ["A pilot vessel engaged on pilotage duty", "A fishing vessel hauling nets", "A vessel requesting a harbour pilot", "A dredging vessel at work"], answer: 0, explanation: "Rule 35(j): A pilot vessel may sound an identity signal of 4 short blasts (Morse H) in addition to the normal fog signals." },
+  { topic: 1, q: "What do all bell and gong fog signals have in common?", options: ["They all indicate decreased manoeuvrability — the vessel is at anchor or aground", "They all mean the vessel is making way through the water", "They indicate the vessel is fishing with gear out", "They are used only by military vessels"], answer: 0, explanation: "Bell and gong signals are exclusively used by vessels at anchor or aground — situations where the vessel cannot manoeuvre. The teacher's rule: 'Every bell/gong signal = decreased manoeuvrability.'" },
 
   // ══════ FARVANDSAFMÆRKNING / BUOYAGE (topic 2) — 16 questions ══════
   { topic: 2, q: "In IALA Region A (used in Denmark), what colour is a port-hand lateral mark?", options: ["Red", "Green", "Yellow", "Black and yellow"], answer: 0, explanation: "IALA Region A: port marks are red (can shape). Starboard marks are green (cone shape). Remember: 'Port wine is red.'" },
@@ -3212,7 +3362,8 @@ const TOPICS = [
       { heading: "The Fundamental Rules (2, 5, 6, 7, 8)", body: "Rule 2 — Responsibility: Nothing in the rules relieves any vessel from the consequences of neglect. Even the 'right of way' vessel must act if collision is imminent. This overrides everything.\n\nRule 5 — Lookout: At all times, by sight, hearing, and all available means (radar, AIS, VHF).\n\nRule 6 — Safe speed: Consider visibility, traffic density, manoeuvrability of your vessel, sea state, and depth. There is no fixed speed limit — 'safe' depends on conditions.\n\nRule 7 — Risk of collision: If the compass bearing to an approaching vessel does not appreciably change, risk of collision exists (CBDR — Constant Bearing, Decreasing Range). If in doubt, assume risk exists.\n\nRule 8 — Action to avoid collision: Must be positive, made in ample time, large enough to be readily apparent to the other vessel, and result in passing at a safe distance. Avoid last-second, small alterations." },
       { heading: "Right of Way (Vigeregler)", body: "Rule 12 — Sail vs Sail:\n• Vessel on port tack gives way to starboard tack\n• Same tack: windward vessel gives way to leeward\n• If you can't tell the other's tack: keep clear\n\nRule 13 — Overtaking: The overtaking vessel ALWAYS keeps clear — regardless of sail vs power. A vessel coming from more than 22.5° abaft the beam is overtaking.\n\nRule 14 — Head-on (power vs power): Both alter to starboard, pass port-to-port.\n\nRule 15 — Crossing (power vs power): The vessel with the other on her starboard side gives way. She should avoid crossing ahead.\n\nRule 18 — Hierarchy (most privileged → least):\nNUC → Restricted in Manoeuvrability → Constrained by Draught → Fishing → Sailing → Power-driven\n\nEach vessel type gives way to all those above it on the list." },
       { heading: "Navigation Lights (Lygteføring)", body: "Sailing vessel underway:\n• Sidelights (red port, green starboard) + white sternlight\n• NO masthead (steaming) light\n\nPower vessel <50m underway:\n• White masthead light (forward, 225° arc) + sidelights + white sternlight\n\nPower vessel ≥50m:\n• Two masthead lights (forward lower, aft higher) + sidelights + sternlight\n\nNot Under Command (NUC):\n• Two red all-round lights vertically + sidelights/stern if making way\n\nRestricted Ability to Manoeuvre (RAM):\n• Red-White-Red all-round lights vertically + normal lights if making way\n\nTrawler:\n• Green over White all-round lights + normal lights if making way\n\nFishing (not trawling):\n• Red over White all-round lights + normal lights if making way\n\nVessel at anchor:\n• White all-round light forward (+ one aft if ≥50m)\n\nVessel aground:\n• Anchor lights + two red all-round vertically\n\nKey trap: Confusing trawler (green/white) with fishing (red/white) lights." },
-      { heading: "Sound Signals", body: "Short blast ≈ 1 second. Prolonged blast ≈ 4–6 seconds.\n\n1 short: I am altering course to STARBOARD\n2 short: I am altering course to PORT\n3 short: I am operating astern propulsion\n5+ short rapid: Danger / doubt signal (I doubt you are taking sufficient avoiding action)\n\n1 prolonged: Warning signal approaching a blind bend in a channel\n1 prolonged + 2 short: I intend to overtake you on YOUR starboard side\n2 prolonged + 2 short: I intend to overtake you on YOUR port side\n1 prolonged every 2 min: Power vessel underway in restricted visibility\n2 prolonged every 2 min: Power vessel underway but stopped\n1 prolonged + 2 short every 2 min: Sailing, fishing, NUC, RAM (restricted visibility)" },
+      { heading: "Sound Signals — Manoeuvre & Warning", body: "Short blast ≈ 1 second. Prolonged blast ≈ 4–6 seconds.\n\nManoeuvre signals:\n• 1 short: I am altering course to STARBOARD\n• 2 short: I am altering course to PORT\n• 3 short: I am operating astern propulsion\n• 5+ short rapid: Danger / doubt signal — 'You are standing into danger' (U)\n\nOvertaking in narrow channels:\n• 1 prolonged + 2 short: I intend to overtake on your starboard side\n• 1 prolonged + 1 short: I intend to overtake on your port side\n• Long-short-long-short (Charlie): The vessel being overtaken agrees\n• 5+ short: I do not agree / I do not understand your intentions\n\n1 prolonged: Warning — nearing a bend where other vessels may be obscured" },
+      { heading: "Sound Signals — Fog (Restricted Visibility)", body: "Fog signals are sounded at regular intervals:\n\nWhistle signals (interval: 2 minutes):\n• 1 prolonged: Power vessel making way\n• 2 prolonged: Power vessel underway but stopped\n• 1 prolonged + 2 short: NUC, RAM, constrained by draught, sailing, fishing, or towing\n• 1 prolonged + 3 short: Last vessel being towed (if manned)\n\nBell and gong signals (interval: 1 minute):\n• Rapid bell ringing for 5 seconds: Vessel at anchor, length < 100 m\n• Rapid bell forward (5s) + gong aft (5s): Vessel at anchor, length ≥ 100 m\n• Vessel at anchor may also sound Morse R (·−·) on whistle to warn approaching vessels\n\nAground signals (interval: 1 minute):\n• 3 distinct bell strokes + rapid ringing (5s) + 3 strokes: Aground, < 100 m\n• Same + gong aft: Aground, ≥ 100 m\n• May supplement with U (5+ short blasts) = 'You are standing into danger'\n\nSpecial:\n• 4 short (Morse H ····): Pilot vessel on duty (identity signal)\n• Dredging vessel: 1 prolonged + 2 short + 6 single bell strokes = danger side (pass as red buoy); + 6 double strokes = safe side (pass as green buoy)\n\nKey rule: Every bell and gong signal relates to decreased manoeuvrability (at anchor or aground)." },
       { heading: "Day Shapes", body: "Black ball = at anchor\nBlack cone point down = motorsailing (sailing vessel using engine)\nBlack diamond = vessel towing/being towed (in certain circumstances)\nTwo black balls vertically = not under command\nBall-diamond-ball vertically = restricted ability to manoeuvre\nBlack cylinder = constrained by draught\nThree black balls vertically = aground\nTwo cones point-to-point (diamond shape) = fishing with gear extending >150m\n\nDay shapes are required during daylight hours. Vessels <12m may be exempt from some shapes in certain conditions." },
     ]
   },
